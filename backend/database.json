@@ -20,6 +20,13 @@
             "quantity": 2.0,
             "unit": "g",
             "id": 1760205673973
+        },
+        {
+            "name": "test",
+            "cost": 567.0,
+            "quantity": 1.0,
+            "unit": "kg",
+            "id": 1760457919174
         }
     ],
     "products": [

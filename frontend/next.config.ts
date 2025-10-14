@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  // Add this line to enable static export for hosting on Hostinger
+  output: 'export',
 
-export default nextConfig;
+  // This is needed to prevent a "trailing slash" issue with static exports
+  trailingSlash: true,
+}
+
+export default nextConfig
