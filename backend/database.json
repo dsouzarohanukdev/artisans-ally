@@ -1,0 +1,45 @@
+{
+    "materials": [
+        {
+            "name": "Resin",
+            "cost": 80.0,
+            "quantity": 4000.0,
+            "unit": "ml",
+            "id": 1760205590336
+        },
+        {
+            "name": "Silicone Mold",
+            "cost": 2.0,
+            "quantity": 1.0,
+            "unit": "unit",
+            "id": 1760205619642
+        },
+        {
+            "name": "Colours and Glitters",
+            "cost": 1.0,
+            "quantity": 2.0,
+            "unit": "g",
+            "id": 1760205673973
+        }
+    ],
+    "products": [
+        {
+            "id": 1760205741804,
+            "name": "Resin Trinket Tray",
+            "recipe": [
+                {
+                    "material_id": 1760205590336,
+                    "quantity": 80
+                },
+                {
+                    "material_id": 1760205619642,
+                    "quantity": 1
+                },
+                {
+                    "material_id": 1760205673973,
+                    "quantity": 2
+                }
+            ]
+        }
+    ]
+}
