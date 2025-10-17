@@ -2,9 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Define the shape of a user and the context
+// The User interface now includes the 'has_ebay_token' property.
 interface User {
   email: string;
+  has_ebay_token: boolean;
 }
 
 interface AuthContextType {
@@ -15,17 +16,14 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// Create the context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create the AuthProvider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const api = 'http://127.0.0.1:5000'; // Base URL for our backend
+  const api = 'http://127.0.0.1:5000';
 
-  // Check if a user session exists on the backend when the app loads
   useEffect(() => {
     const checkLoggedIn = async () => {
       try {
@@ -82,11 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
       {children}
-    </AuthContext.Provider>
+    </AuthContext.Provider> // <-- THIS LINE IS NOW CORRECT
   );
 };
 
-// Create a custom hook for easy access to the context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

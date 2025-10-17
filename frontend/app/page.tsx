@@ -3,7 +3,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation'; // Import the router
+import { useRouter } from 'next/navigation';
 
 // --- Type Definitions ---
 type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'Etsy' | 'eBay'; };
@@ -18,7 +18,7 @@ type WorkshopData = { materials: Material[]; products: Product[]; };
 
 export default function Home() {
     const { user, isLoading: isAuthLoading } = useAuth();
-    const router = useRouter(); // Initialize the router
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('jesmonite tray');
     const [materialCost, setMaterialCost] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +52,6 @@ export default function Home() {
             const response = await fetch('http://127.0.0.1:5000/api/workshop', { credentials: 'include' });
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log("User not logged in, cannot fetch workshop data.");
                     setWorkshopData({ materials: [], products: [] });
                     return;
                 }
@@ -268,7 +267,9 @@ export default function Home() {
                         )}
                         {activeTab === 'workshop' && (
                             <div>
-                                {!user ? (
+                                {isAuthLoading ? (
+                                    <p className="text-center text-gray-500 py-8">Loading user session...</p>
+                                ) : !user ? (
                                     <div className="text-center text-gray-500 py-8 px-4 bg-white rounded-lg shadow-md">
                                         <h2 className="text-2xl font-bold text-gray-800">Welcome to the Workshop Manager!</h2>
                                         <p className="mt-2">This is your private space to manage materials and product recipes.</p>
