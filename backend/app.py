@@ -95,7 +95,7 @@ def create_app():
     bcrypt.init_app(app)
     login_manager.init_app(app)
     
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://freefileconverter.co.uk"]}}, supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://freefileconverter.co.uk", "https://www.freefileconverter.co.uk"]}}, supports_credentials=True)
 
     # All routes must be defined inside the app context
     with app.app_context():

@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
 
   // This is needed to prevent a "trailing slash" issue with static exports
   trailingSlash: true,
+
+  // This ensures the correct URL is baked into the build
+  env: {
+    NEXT_PUBLIC_API_URL: 'https://dsouzarohanuk.pythonanywhere.com',
+  },
 }
 
 export default nextConfig
