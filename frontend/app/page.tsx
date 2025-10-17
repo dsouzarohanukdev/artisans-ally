@@ -49,7 +49,7 @@ export default function Home() {
     const fetchWorkshopData = async () => {
         setIsWorkshopLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/workshop', { credentials: 'include' });
+            const response = await fetch('https://dsouzarohanuk.pythonanywhere.com/api/workshop', { credentials: 'include' });
             if (!response.ok) {
                 if (response.status === 401) {
                     setWorkshopData({ materials: [], products: [] });
@@ -100,7 +100,7 @@ export default function Home() {
         setScenarios([]); setSeoAnalysis(null); setAiContent(null);
         setActiveTab('analysis'); setActiveAnalysisTab('etsy');
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/analyse?cost=${materialCost}&query=${searchTerm}`);
+            const response = await fetch(`https://dsouzarohanuk.pythonanywhere.com/api/analyse?cost=${materialCost}&query=${searchTerm}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const analysisData = await response.json();
             setEtsyListings(analysisData.listings.etsy);
@@ -119,7 +119,7 @@ export default function Home() {
         if (!seoAnalysis?.top_keywords) return;
         setIsGenerating(true); setError(''); setAiContent(null);
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/generate-content', {
+            const response = await fetch('https://dsouzarohanuk.pythonanywhere.com/api/generate-content', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ keywords: seoAnalysis.top_keywords }),
                 credentials: 'include'
@@ -135,7 +135,7 @@ export default function Home() {
         e.preventDefault();
         const materialToAdd = { name: newMaterial.name, cost: parseFloat(newMaterial.cost), quantity: parseFloat(newMaterial.quantity), unit: newMaterial.unit };
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/materials', {
+            const response = await fetch('https://dsouzarohanuk.pythonanywhere.com/api/materials', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialToAdd),
                 credentials: 'include'
             });
@@ -150,7 +150,7 @@ export default function Home() {
         const productToAdd = { name: newProductName, recipe: newProductRecipe.filter(item => item.material_id && item.quantity).map(item => ({ material_id: parseInt(item.material_id), quantity: parseFloat(item.quantity) })) };
         if (productToAdd.name && productToAdd.recipe.length > 0) {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/products', {
+                const response = await fetch('https://dsouzarohanuk.pythonanywhere.com/api/products', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productToAdd),
                     credentials: 'include'
                 });
@@ -164,7 +164,7 @@ export default function Home() {
     const handleDeleteMaterial = async (materialId: number) => {
         if (!window.confirm('Are you sure you want to permanently delete this material?')) return;
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`https://dsouzarohanuk.pythonanywhere.com/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete material.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the material.'); }
@@ -173,7 +173,7 @@ export default function Home() {
     const handleDeleteProduct = async (productId: number) => {
         if (!window.confirm('Are you sure you want to permanently delete this product?')) return;
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`https://dsouzarohanuk.pythonanywhere.com/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete product.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the product.'); }
@@ -183,7 +183,7 @@ export default function Home() {
         setIsRelatedModalOpen(true); setIsRelatedLoading(true); setSelectedListingTitle(title);
         setRelatedItems([]); setError('');
         try {
-            const response = await fetch(`http://127.0.0.1:5000/api/related-items/${itemId}`);
+            const response = await fetch(`https://dsouzarohanuk.pythonanywhere.com/api/related-items/${itemId}`);
             if (!response.ok) throw new Error("Failed to fetch related items.");
             const data = await response.json(); setRelatedItems(data.listings || []);
         } catch (err) {

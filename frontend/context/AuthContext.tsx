@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const api = 'http://127.0.0.1:5000';
+  const api = 'https://dsouzarohanuk.pythonanywhere.com';
 
   useEffect(() => {
     const checkLoggedIn = async () => {

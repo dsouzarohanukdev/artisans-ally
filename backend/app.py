@@ -295,7 +295,8 @@ def create_app():
         @app.route('/api/ebay/callback', methods=['GET'])
         def ebay_callback():
             auth_code = request.args.get('code'); user_id = request.args.get('state')
-            if not auth_code or not user_id: return redirect('http://localhost:3000/publisher?error=true')
+            live_frontend_url = "https://freefileconverter.co.uk"
+            if not auth_code or not user_id: return redirect(f'{live_frontend_url}/publisher?error=true')
             url = "https://api.ebay.com/identity/v1/oauth2/token"
             credentials = f"{EBAY_PROD_CLIENT_ID}:{EBAY_PROD_CLIENT_SECRET}"
             base64_credentials = base64.b64encode(credentials.encode()).decode()
@@ -310,11 +311,11 @@ def create_app():
                     user.ebay_token.refresh_token = data['refresh_token']
                     user.ebay_token.refresh_token_expiry = time.time() + data['refresh_token_expires_in']
                     db.session.commit()
-                    return redirect('http://localhost:3000/publisher?success=true')
+                    return redirect(f'{live_frontend_url}/publisher?success=true')
             except Exception as e:
                 print(f"!!! Error exchanging eBay auth code: {e}")
-            return redirect('http://localhost:3000/publisher?error=true')
-        
+            return redirect(f'{live_frontend_url}/publisher?error=true')
+
         @app.route('/api/ebay/create-draft', methods=['POST'])
         @login_required
         def create_ebay_draft():
