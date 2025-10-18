@@ -9,7 +9,7 @@ export default function PublisherClient() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = '';;
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
