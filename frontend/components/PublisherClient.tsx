@@ -9,6 +9,7 @@ export default function PublisherClient() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -32,7 +33,7 @@ export default function PublisherClient() {
     const handleEbayAuth = async () => {
         setIsConnecting(true);
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/ebay/get-auth-url', { credentials: 'include' });
+            const response = await fetch(`${API_URL}/api/ebay/get-auth-url`, { credentials: 'include' });
             if (!response.ok) throw new Error("Failed to get auth URL");
             const data = await response.json();
             window.location.href = data.auth_url;
@@ -48,7 +49,7 @@ export default function PublisherClient() {
         setSubmitStatus(null);
         setSubmitMessage('');
         try {
-            const response = await fetch('http://127.0.0.1:5000/api/ebay/create-draft', {
+            const response = await fetch(`${API_URL}/api/ebay/create-draft`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, description, price: parseFloat(price) }),
