@@ -40,33 +40,10 @@ class User(db.Model, UserMixin):
     ebay_token = db.relationship('EbayToken', backref='user', uselist=False, cascade="all, delete-orphan")
     materials = db.relationship('Material', backref='owner', lazy=True, cascade="all, delete-orphan")
     products = db.relationship('Product', backref='owner', lazy=True, cascade="all, delete-orphan")
-
-class Material(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    cost = db.Column(db.Float, nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
-    unit = db.Column(db.String(20), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    recipe = db.relationship('RecipeItem', backref='product', lazy=True, cascade="all, delete-orphan")
-
-class RecipeItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    quantity = db.Column(db.Float, nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-    material_id = db.Column(db.Integer, db.ForeignKey('material.id'), nullable=False)
-    material = db.relationship('Material')
-
-class EbayToken(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    refresh_token = db.Column(db.String(500), nullable=False)
-    refresh_token_expiry = db.Column(db.BigInteger, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+class Material(db.Model): id = db.Column(db.Integer, primary_key=True); name = db.Column(db.String(100), nullable=False); cost = db.Column(db.Float, nullable=False); quantity = db.Column(db.Float, nullable=False); unit = db.Column(db.String(20), nullable=False); user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+class Product(db.Model): id = db.Column(db.Integer, primary_key=True); name = db.Column(db.String(100), nullable=False); user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False); recipe = db.relationship('RecipeItem', backref='product', lazy=True, cascade="all, delete-orphan")
+class RecipeItem(db.Model): id = db.Column(db.Integer, primary_key=True); quantity = db.Column(db.Float, nullable=False); product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False); material_id = db.Column(db.Integer, db.ForeignKey('material.id'), nullable=False); material = db.relationship('Material')
+class EbayToken(db.Model): id = db.Column(db.Integer, primary_key=True); refresh_token = db.Column(db.String(500), nullable=False); refresh_token_expiry = db.Column(db.BigInteger, nullable=False); user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 # --- The App Factory Function ---
 def create_app():
@@ -82,24 +59,21 @@ def create_app():
     app.config['SESSION_COOKIE_SAMESITE'] = 'None'
     app.config['SESSION_COOKIE_SECURE'] = True
     
-    # Initialize globals inside the factory
     global EBAY_PROD_CLIENT_ID, EBAY_PROD_CLIENT_SECRET, EBAY_PROD_RUNAME, openai_client
     EBAY_PROD_CLIENT_ID = os.environ.get("EBAY_PROD_CLIENT_ID")
     EBAY_PROD_CLIENT_SECRET = os.environ.get("EBAY_PROD_CLIENT_SECRET")
     EBAY_PROD_RUNAME = os.environ.get("EBAY_PROD_RUNAME")
     openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-    # Step 2: Initialize extensions with the app instance
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://freefileconverter.co.uk", "https://www.freefileconverter.co.uk"]}}, supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://freefileconverter.co.uk"]}}, supports_credentials=True)
 
-    # All routes must be defined inside the app context
     with app.app_context():
-        # --- Helper Functions (defined inside context) ---
+        # --- Helper Functions ---
         def get_ebay_app_oauth_token():
             global ebay_app_oauth_token, ebay_app_token_expiry
             if ebay_app_oauth_token and time.time() < ebay_app_token_expiry: return ebay_app_oauth_token
@@ -114,15 +88,14 @@ def create_app():
                 ebay_app_token_expiry = time.time() + (data['expires_in'] - 300)
                 return ebay_app_oauth_token
             except: return None
-
+        
         def search_ebay_production(search_term, category_id=None, exclude_item_id=None):
             token = get_ebay_app_oauth_token()
             if not token: return []
             url = "https://api.ebay.com/buy/browse/v1/item_summary/search"; headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB"}; 
             params = {"q": search_term, "limit": 100}
             if category_id:
-                params['category_ids'] = category_id
-                params['limit'] = 50
+                params['category_ids'] = category_id; params['limit'] = 50
             if exclude_item_id:
                 params['filter'] = f"itemId:-{{{exclude_item_id}}}"
             try:
@@ -161,11 +134,8 @@ def create_app():
             if check_response.status_code == 200:
                 print(f"✅ Inventory location '{location_key}' already exists.")
                 return True
-            
             print(f"⚙️ Creating new inventory location '{location_key}'...")
             create_url = f"https://api.ebay.com/sell/inventory/v1/location/{location_key}"
-            
-            # This is the new, more complete payload that will be accepted.
             payload = {
                 "location": {
                     "address": {
@@ -181,10 +151,7 @@ def create_app():
                 "merchantLocationStatus": "ENABLED",
                 "locationTypes": ["WAREHOUSE"]
             }
-            
-            # The method for creating a location is POST.
             create_response = requests.post(create_url, headers=headers, json=payload)
-            
             if create_response.status_code in [200, 201, 204]:
                 print(f"✅ Inventory location '{location_key}' created successfully.")
                 return True
@@ -201,6 +168,7 @@ def create_app():
             user = User(email=data['email'], password=hashed_password)
             db.session.add(user); db.session.commit(); login_user(user)
             return jsonify({"message": "User registered", "user": {"email": user.email}}), 201
+        
         @app.route('/api/login', methods=['POST'])
         def login():
             data = request.get_json()
@@ -209,10 +177,12 @@ def create_app():
                 login_user(user, remember=True)
                 return jsonify({"message": "Logged in", "user": {"email": user.email}}), 200
             return jsonify({"error": "Invalid credentials"}), 401
+        
         @app.route('/api/logout', methods=['POST'])
         @login_required
         def logout():
             logout_user(); return jsonify({"message": "Logged out"}), 200
+        
         @app.route('/api/check_session', methods=['GET'])
         def check_session():
             if current_user.is_authenticated:
@@ -266,21 +236,51 @@ def create_app():
         def analyse_market():
             try: material_cost = float(request.args.get('cost', 0)); search_query = request.args.get('query', 'jesmonite tray')
             except (ValueError, TypeError): return jsonify({"error": "Invalid request parameters"}), 400
+            
             etsy_listings = []
             ebay_listings = search_ebay_production(search_query)
+            
             etsy_analysis = analyse_prices(etsy_listings); ebay_analysis = analyse_prices(ebay_listings); combined_analysis = analyse_prices(etsy_listings + ebay_listings)
             average_price = combined_analysis['average_price']
+            
             PLATFORM_FEE_PERCENTAGE, PLATFORM_FIXED_FEE, SHIPPING_COST = 0.10, 0.20, 3.20
             scenarios = []; pricing_tiers = {"The Budget Leader": average_price * 0.9, "The Competitor": average_price, "The Premium Brand": average_price * 1.15}
             for name, price in pricing_tiers.items():
                 fees = (price * PLATFORM_FEE_PERCENTAGE) + PLATFORM_FIXED_FEE; profit = price - material_cost - fees - SHIPPING_COST
                 scenarios.append({"name": name, "price": round(price, 2), "profit": round(profit, 2)})
+            
             full_response = {"listings": {"etsy": etsy_listings, "ebay": ebay_listings}, "analysis": {"overall": combined_analysis, "etsy": etsy_analysis, "ebay": ebay_analysis}, "profit_scenarios": scenarios}
             return jsonify(full_response)
-        
+
         @app.route('/api/related-items/<item_id>', methods=['GET'])
         def get_related_items(item_id):
-            return jsonify({"listings": []})
+            print(f"\n--- Finding items related to eBay item ID: {item_id} ---")
+            token = get_ebay_app_oauth_token() # Use the app token, not a user token
+            if not token: return jsonify({"error": "Could not authenticate with eBay"}), 500
+            try:
+                item_url = f"https://api.ebay.com/buy/browse/v1/item/{item_id}"
+                headers = {"Authorization": f"Bearer {token}", "X-EBAY-C-MARKETPLACE-ID": "EBAY_GB"}
+                item_response = requests.get(item_url, headers=headers); item_response.raise_for_status()
+                item_data = item_response.json()
+                
+                category_id = item_data.get('categoryPath', '').split('|')[0]
+                original_title = item_data.get('title')
+
+                if not category_id or not original_title:
+                    print("--- Could not determine category or title for related search. ---")
+                    return jsonify({"listings": []})
+
+                print(f"--- Original item is in category {category_id}. Searching for similar items... ---")
+                
+                related_listings = search_ebay_production(
+                    search_term=original_title, 
+                    category_id=category_id,
+                    exclude_item_id=item_id
+                )
+                return jsonify({"listings": related_listings})
+            except Exception as e:
+                print(f"An unexpected error occurred in get_related_items: {e}")
+                return jsonify({"error": "An unexpected error occurred"}), 500
         
         @app.route('/api/ebay/get-auth-url', methods=['GET'])
         @login_required
@@ -295,8 +295,9 @@ def create_app():
         @app.route('/api/ebay/callback', methods=['GET'])
         def ebay_callback():
             auth_code = request.args.get('code'); user_id = request.args.get('state')
-            live_frontend_url = "https://freefileconverter.co.uk"
-            if not auth_code or not user_id: return redirect(f'{live_frontend_url}/publisher?error=true')
+            # This is the local redirect. This will be changed for final deployment.
+            local_frontend_url = "http://localhost:3000"
+            if not auth_code or not user_id: return redirect(f'{local_frontend_url}/publisher?error=true')
             url = "https://api.ebay.com/identity/v1/oauth2/token"
             credentials = f"{EBAY_PROD_CLIENT_ID}:{EBAY_PROD_CLIENT_SECRET}"
             base64_credentials = base64.b64encode(credentials.encode()).decode()
@@ -311,11 +312,11 @@ def create_app():
                     user.ebay_token.refresh_token = data['refresh_token']
                     user.ebay_token.refresh_token_expiry = time.time() + data['refresh_token_expires_in']
                     db.session.commit()
-                    return redirect(f'{live_frontend_url}/publisher?success=true')
+                    return redirect(f'{local_frontend_url}/publisher?success=true')
             except Exception as e:
                 print(f"!!! Error exchanging eBay auth code: {e}")
-            return redirect(f'{live_frontend_url}/publisher?error=true')
-
+            return redirect(f'{local_frontend_url}/publisher?error=true')
+        
         @app.route('/api/ebay/create-draft', methods=['POST'])
         @login_required
         def create_ebay_draft():

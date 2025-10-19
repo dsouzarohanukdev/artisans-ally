@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// The User interface now includes the 'has_ebay_token' property.
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 interface User {
   email: string;
   has_ebay_token: boolean;
@@ -22,12 +23,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const api = '';
-
   useEffect(() => {
     const checkLoggedIn = async () => {
       try {
-        const res = await fetch(`${api}/api/check_session`, { credentials: 'include' });
+        const res = await fetch(`${API_URL}/api/check_session`, { credentials: 'include' });
         const data = await res.json();
         if (data.logged_in) {
           setUser(data.user);
@@ -42,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const register = async (email: string, password: string) => {
-    const res = await fetch(`${api}/api/register`, {
+    const res = await fetch(`${API_URL}/api/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -56,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${api}/api/login`, {
+    const res = await fetch(`${API_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -70,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetch(`${api}/api/logout`, {
+    await fetch(`${API_URL}/api/logout`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -80,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
       {children}
-    </AuthContext.Provider> // <-- THIS LINE IS NOW CORRECT
+    </AuthContext.Provider>
   );
 };
 

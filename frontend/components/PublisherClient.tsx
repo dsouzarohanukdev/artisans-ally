@@ -5,11 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function PublisherClient() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const API_URL = '';;
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -37,8 +38,8 @@ export default function PublisherClient() {
             if (!response.ok) throw new Error("Failed to get auth URL");
             const data = await response.json();
             window.location.href = data.auth_url;
-        } catch (err) {
-            console.error(err);
+        } catch (_err) {
+            console.error(_err);
             setIsConnecting(false);
         }
     };
@@ -65,7 +66,7 @@ export default function PublisherClient() {
                 setSubmitMessage(`Success! Draft listing created with Offer ID: ${data.offerId}. You can now find this draft in your eBay account.`);
                 setTitle(''); setDescription(''); setPrice('');
             }
-        } catch (err) {
+        } catch (_err) {
             setSubmitStatus('error');
             setSubmitMessage('Failed to connect to the server. Please try again.');
         } finally {
@@ -93,7 +94,7 @@ export default function PublisherClient() {
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-800">Publisher</h1>
                 <p className="text-lg md:text-xl text-gray-500 mt-2">Create once, post everywhere.</p>
             </header>
-
+            
             {authStatus === 'success' && <div className="max-w-xl mx-auto bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-6" role="alert">Successfully connected your eBay account! You can now create drafts.</div>}
             {authStatus === 'error' && <div className="max-w-xl mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6" role="alert">Failed to connect your eBay account. Please try again.</div>}
 
@@ -111,14 +112,18 @@ export default function PublisherClient() {
                             <div><label htmlFor="price" className="block text-sm font-medium">Price (£)</label><input type="number" id="price" value={price} onChange={(e) => setPrice(e.target.value)} required step="0.01" placeholder="e.g., 25.00" className="mt-1 w-full p-2 border border-gray-300 rounded-md"/></div>
                             {submitStatus === 'success' && <div className="text-green-700 text-sm p-3 bg-green-50 rounded-md">{submitMessage}</div>}
                             {submitStatus === 'error' && <div className="text-red-700 text-sm p-3 bg-red-50 rounded-md">{submitMessage}</div>}
-                            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 disabled:bg-gray-400">{isSubmitting ? 'Creating Draft...' : 'Create Draft on eBay'}</button>
+                            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 disabled:bg-gray-400">
+                                {isSubmitting ? 'Creating Draft...' : 'Create Draft on eBay'}
+                            </button>
                         </form>
                     </div>
                 ) : (
                     <div className="text-center">
                         <h2 className="text-2xl font-semibold text-gray-800 mb-2">Connect Your eBay Account</h2>
                         <p className="text-gray-600 mb-6">To publish listings, you need to grant Artisan's Ally permission to create drafts on your behalf. This is a one-time setup.</p>
-                        <button onClick={handleEbayAuth} disabled={isConnecting} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 disabled:bg-gray-400">{isConnecting ? 'Redirecting...' : 'Connect to eBay'}</button>
+                        <button onClick={handleEbayAuth} disabled={isConnecting} className="bg-blue-600 text-white font-bold py-3 px-6 rounded-md hover:bg-blue-700 disabled:bg-gray-400">
+                            {isConnecting ? 'Redirecting...' : 'Connect to eBay'}
+                        </button>
                     </div>
                 )}
             </div>

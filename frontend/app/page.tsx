@@ -1,211 +1,55 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { FormEvent } from 'react';
 import Navbar from '@/components/Navbar';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useArtisanAlly } from '@/hooks/useArtisanAlly';
 
 // --- Type Definitions ---
-type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'Etsy' | 'eBay'; };
-type AnalysisBreakdown = { count: number; average_price: number; min_price: number; max_price: number; };
-type ProfitScenario = { name: string; price: number; profit: number; };
-type SeoAnalysis = { top_keywords: string[]; };
-type AiContent = { titles: string[]; description: string; };
-type Material = { id: number; name: string; cost: number; quantity: number; unit: string; cost_per_unit?: number; };
-type RecipeItem = { material_id: string; quantity: string; };
-type Product = { id: number; name: string; recipe: { material_id: number; quantity: number }[]; cogs?: number; };
-type WorkshopData = { materials: Material[]; products: Product[]; };
+type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'eBay' | 'Etsy'; };
 
 export default function Home() {
-    const { user, isLoading: isAuthLoading } = useAuth();
-    const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('jesmonite tray');
-    const [materialCost, setMaterialCost] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [selectedProductId, setSelectedProductId] = useState('');
-    const [etsyListings, setEtsyListings] = useState<Listing[]>([]);
-    const [ebayListings, setEbayListings] = useState<Listing[]>([]);
-    const [overallAnalysis, setOverallAnalysis] = useState<AnalysisBreakdown | null>(null);
-    const [etsyAnalysis, setEtsyAnalysis] = useState<AnalysisBreakdown | null>(null);
-    const [ebayAnalysis, setEbayAnalysis] = useState<AnalysisBreakdown | null>(null);
-    const [scenarios, setScenarios] = useState<ProfitScenario[]>([]);
-    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [aiContent, setAiContent] = useState<AiContent | null>(null);
-    const [workshopData, setWorkshopData] = useState<WorkshopData>({ materials: [], products: [] });
-    const [isWorkshopLoading, setIsWorkshopLoading] = useState(true);
-    const [newMaterial, setNewMaterial] = useState({ name: '', cost: '', quantity: '', unit: 'g' });
-    const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [newProductName, setNewProductName] = useState('');
-    const [newProductRecipe, setNewProductRecipe] = useState<RecipeItem[]>([{ material_id: '', quantity: '' }]);
-    const [isRelatedModalOpen, setIsRelatedModalOpen] = useState(false);
-    const [relatedItems, setRelatedItems] = useState<Listing[]>([]);
-    const [isRelatedLoading, setIsRelatedLoading] = useState(false);
-    const [selectedListingTitle, setSelectedListingTitle] = useState('');
-    const [activeTab, setActiveTab] = useState<'analysis' | 'workshop'>('analysis');
-    const [activeAnalysisTab, setActiveAnalysisTab] = useState<'etsy' | 'ebay'>('etsy');
+    const {
+        user, isAuthLoading, router,
+        searchTerm, setSearchTerm,
+        materialCost, setMaterialCost,
+        isLoading, error,
+        selectedProductId, setSelectedProductId,
+        etsyListings, ebayListings,
+        overallAnalysis, etsyAnalysis, ebayAnalysis,
+        scenarios, seoAnalysis, isGenerating, aiContent,
+        workshopData, isWorkshopLoading,
+        newMaterial, setNewMaterial,
+        isProductModalOpen, setIsProductModalOpen,
+        newProductName, setNewProductName,
+        newProductRecipe, setNewProductRecipe,
+        isRelatedModalOpen, setIsRelatedModalOpen,
+        relatedItems, isRelatedLoading, selectedListingTitle,
+        activeTab, setActiveTab,
+        activeAnalysisTab, setActiveAnalysisTab,
+        handleAnalyse, handleGenerateContent,
+        handleAddMaterial, handleAddProduct,
+        handleDeleteMaterial, handleDeleteProduct,
+        handleFindSimilar, handleRecipeChange, removeRecipeItem,
+        sortedEbayListings, sortedEtsyListings,
+        displayMode, setDisplayMode,
+        paginationCount, setPaginationCount
+    } = useArtisanAlly();
 
-    const fetchWorkshopData = async () => {
-        setIsWorkshopLoading(true);
-        try {
-            const response = await fetch(`/api/workshop`, { credentials: 'include' });
-            if (!response.ok) {
-                if (response.status === 401) {
-                    setWorkshopData({ materials: [], products: [] });
-                    return;
-                }
-                throw new Error("Failed to fetch workshop data");
-            }
-            const data = await response.json();
-            setWorkshopData(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsWorkshopLoading(false);
-        }
-    };
+    let curatedList: Listing[] = [];
+    if (sortedEbayListings.length > 6) {
+        const lowCost = sortedEbayListings.slice(0, 2);
+        const midIndex = Math.floor(sortedEbayListings.length / 2);
+        const midCost = sortedEbayListings.slice(midIndex - 1, midIndex + 1);
+        const highCost = sortedEbayListings.slice(-2);
+        curatedList = [...lowCost, ...midCost, ...highCost];
+    } else {
+        curatedList = sortedEbayListings;
+    }
 
-    useEffect(() => {
-        if (user) {
-            fetchWorkshopData();
-        } else {
-            setWorkshopData({ materials: [], products: [] });
-            setIsWorkshopLoading(false);
-        }
-    }, [user]);
+    const paginatedList = sortedEbayListings.slice(0, paginationCount);
+    const listingsToDisplay = displayMode === 'curated' ? curatedList : paginatedList;
 
-    useEffect(() => {
-        if (selectedProductId) {
-            const product = workshopData.products.find(p => p.id === parseInt(selectedProductId));
-            if (product && product.cogs) {
-                setMaterialCost(product.cogs.toFixed(2));
-            }
-        }
-    }, [selectedProductId, workshopData.products]);
-
-    useEffect(() => {
-        if (!user) {
-            setActiveTab('analysis');
-        }
-    }, [user]);
-
-    const handleAnalyse = async () => {
-        if (!materialCost) {
-            setError("Please enter a material cost or select a product with a calculated cost first.");
-            return;
-        }
-        setIsLoading(true); setError(''); setEtsyListings([]); setEbayListings([]);
-        setOverallAnalysis(null); setEtsyAnalysis(null); setEbayAnalysis(null);
-        setScenarios([]); setSeoAnalysis(null); setAiContent(null);
-        setActiveTab('analysis'); setActiveAnalysisTab('etsy');
-        try {
-            const response = await fetch(`/api/analyse?cost=${materialCost}&query=${searchTerm}`);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const analysisData = await response.json();
-            setEtsyListings(analysisData.listings.etsy);
-            setEbayListings(analysisData.listings.ebay);
-            setOverallAnalysis(analysisData.analysis.overall);
-            setEtsyAnalysis(analysisData.analysis.etsy);
-            setEbayAnalysis(analysisData.analysis.ebay);
-            setScenarios(analysisData.profit_scenarios);
-            setSeoAnalysis(analysisData.seo_analysis);
-        } catch (err) {
-            setError('Failed to fetch data from the backend.'); console.error(err);
-        } finally { setIsLoading(false); }
-    };
-
-    const handleGenerateContent = async () => {
-        if (!seoAnalysis?.top_keywords) return;
-        setIsGenerating(true); setError(''); setAiContent(null);
-        try {
-            const response = await fetch(`/api/generate-content`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keywords: seoAnalysis.top_keywords }),
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error('AI content generation failed');
-            const data = await response.json(); setAiContent(data);
-        } catch (err) {
-            setError('Failed to generate AI content.'); console.error(err);
-        } finally { setIsGenerating(false); }
-    };
-    
-    const handleAddMaterial = async (e: FormEvent) => {
-        e.preventDefault();
-        const materialToAdd = { name: newMaterial.name, cost: parseFloat(newMaterial.cost), quantity: parseFloat(newMaterial.quantity), unit: newMaterial.unit };
-        try {
-            const response = await fetch(`/api/materials`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialToAdd),
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error("Failed to add material");
-            fetchWorkshopData();
-            setNewMaterial({ name: '', cost: '', quantity: '', unit: 'g' });
-        } catch (err) { console.error(err); setError("Failed to save new material."); }
-    };
-
-    const handleAddProduct = async (e: FormEvent) => {
-        e.preventDefault();
-        const productToAdd = { name: newProductName, recipe: newProductRecipe.filter(item => item.material_id && item.quantity).map(item => ({ material_id: parseInt(item.material_id), quantity: parseFloat(item.quantity) })) };
-        if (productToAdd.name && productToAdd.recipe.length > 0) {
-            try {
-                const response = await fetch(`/api/products`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productToAdd),
-                    credentials: 'include'
-                });
-                if (!response.ok) throw new Error("Failed to add product");
-                fetchWorkshopData();
-                setIsProductModalOpen(false); setNewProductName(''); setNewProductRecipe([{ material_id: '', quantity: '' }]);
-            } catch (err) { console.error(err); setError("Failed to save new product."); }
-        }
-    };
-
-    const handleDeleteMaterial = async (materialId: number) => {
-        if (!window.confirm('Are you sure you want to permanently delete this material?')) return;
-        try {
-            const response = await fetch(`/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
-            if (!response.ok) throw new Error('Failed to delete material.');
-            fetchWorkshopData();
-        } catch (err) { console.error(err); setError('Could not delete the material.'); }
-    };
-
-    const handleDeleteProduct = async (productId: number) => {
-        if (!window.confirm('Are you sure you want to permanently delete this product?')) return;
-        try {
-            const response = await fetch(`/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
-            if (!response.ok) throw new Error('Failed to delete product.');
-            fetchWorkshopData();
-        } catch (err) { console.error(err); setError('Could not delete the product.'); }
-    };
-    
-    const handleFindSimilar = async (itemId: string | number, title: string) => {
-        setIsRelatedModalOpen(true); setIsRelatedLoading(true); setSelectedListingTitle(title);
-        setRelatedItems([]); setError('');
-        try {
-            const response = await fetch(`/api/related-items/${itemId}`);
-            if (!response.ok) throw new Error("Failed to fetch related items.");
-            const data = await response.json(); setRelatedItems(data.listings || []);
-        } catch (err) {
-            console.error(err); setError("Could not load related items at this time.");
-            setTimeout(() => { setIsRelatedModalOpen(false); setError(''); }, 2000);
-        } finally { setIsRelatedLoading(false); }
-    };
-
-    const handleRecipeChange = (index: number, field: 'material_id' | 'quantity', value: string) => {
-        const updatedRecipe = [...newProductRecipe];
-        updatedRecipe[index] = { ...updatedRecipe[index], [field]: value };
-        setNewProductRecipe(updatedRecipe);
-    };
-
-    const removeRecipeItem = (index: number) => {
-        const updatedRecipe = newProductRecipe.filter((_, i) => i !== index);
-        if (updatedRecipe.length === 0) { setNewProductRecipe([{ material_id: '', quantity: '' }]); } else { setNewProductRecipe(updatedRecipe); }
-    };
-    
-    const sortedEtsyListings = [...etsyListings].sort((a, b) => (a.price.amount / a.price.divisor) - (b.price.amount / b.price.divisor));
-    const sortedEbayListings = [...ebayListings].sort((a, b) => (a.price.amount / a.price.divisor) - (b.price.amount / b.price.divisor));
-    
     return (
         <>
             <Navbar />
@@ -235,28 +79,48 @@ export default function Home() {
                     <div className="mt-8">
                         {activeTab === 'analysis' && (
                             <div>
-                                {isLoading ? (<p className="text-center text-gray-500 py-8">Analysing the market...</p>) : overallAnalysis ? (
+                                {isLoading ? (<p className="text-center text-gray-500 py-8">Analysing the eBay market...</p>) : overallAnalysis ? (
                                     <div className="space-y-12">
-                                        <div><div className="text-center mb-8"><h2 className="text-3xl font-bold text-gray-800">Your Profit Scenarios</h2><p className="text-md text-gray-500 mt-2">Calculated using your cost of <span className="font-semibold">£{parseFloat(materialCost).toFixed(2)}</span> against the overall market average of <span className="font-semibold">£{overallAnalysis.average_price.toFixed(2)}</span>.</p></div><div className="grid grid-cols-1 md:grid-cols-3 gap-6">{scenarios.map((s)=>(<div key={s.name} className="bg-white p-6 rounded-lg shadow-md border text-center"><h3 className="font-semibold text-gray-800">{s.name}</h3><p className="text-sm text-gray-500 mb-2">Set Price at £{s.price.toFixed(2)}</p><p className="text-2xl font-bold text-green-600">£{s.profit.toFixed(2)}</p><p className="text-sm text-gray-500">Estimated Profit</p></div>))}</div></div>
+                                        <div><div className="text-center mb-8"><h2 className="text-3xl font-bold text-gray-800">Your Profit Scenarios</h2><p className="text-md text-gray-500 mt-2">Calculated using your cost of <span className="font-semibold">£{parseFloat(materialCost).toFixed(2)}</span> against the eBay market average of <span className="font-semibold">£{overallAnalysis.average_price.toFixed(2)}</span>.</p></div><div className="grid grid-cols-1 md:grid-cols-3 gap-6">{scenarios.map((s)=>(<div key={s.name} className="bg-white p-6 rounded-lg shadow-md border text-center"><h3 className="font-semibold text-gray-800">{s.name}</h3><p className="text-sm text-gray-500 mb-2">Set Price at £{s.price.toFixed(2)}</p><p className="text-2xl font-bold text-green-600">£{s.profit.toFixed(2)}</p><p className="text-sm text-gray-500">Estimated Profit</p></div>))}</div></div>
                                         <div>
                                             <div className="border-b border-gray-200">
                                                 <nav className="-mb-px flex gap-6" aria-label="Platform Tabs">
-                                                    <button onClick={() => setActiveAnalysisTab('etsy')} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeAnalysisTab === 'etsy' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>Etsy Analysis</button>
                                                     <button onClick={() => setActiveAnalysisTab('ebay')} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeAnalysisTab === 'ebay' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>eBay Analysis</button>
+                                                    <button onClick={() => setActiveAnalysisTab('etsy')} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeAnalysisTab === 'etsy' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>Etsy Analysis</button>
                                                 </nav>
                                             </div>
                                             <div className="mt-8">
-                                                {activeAnalysisTab === 'etsy' && etsyAnalysis && (
-                                                    <div className="space-y-8">
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center"><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Listings Found</p><p className="text-xl font-bold text-gray-800">{etsyAnalysis.count}</p></div><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Average Price</p><p className="text-xl font-bold text-orange-600">£{etsyAnalysis.average_price.toFixed(2)}</p></div><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Price Range</p><p className="text-xl font-bold text-gray-800">£{etsyAnalysis.min_price.toFixed(2)} - £{etsyAnalysis.max_price.toFixed(2)}</p></div></div>
-                                                        <div><h3 className="text-xl font-semibold text-gray-700 mb-4">Etsy Listings (Sorted by Price)</h3><div className="bg-white p-4 rounded-lg shadow-md"><ul className="divide-y divide-gray-200">{sortedEtsyListings.map((l)=>(<li key={`Etsy-${l.listing_id}`} className="py-3 flex justify-between items-center gap-4"><p className="text-gray-800 text-sm flex-1">{l.title}</p><span className="font-semibold text-gray-800 w-16 text-right">£{(l.price.amount / l.price.divisor).toFixed(2)}</span></li>))}</ul></div></div>
-                                                        <div className="space-y-8">{seoAnalysis && (<div><h3 className="text-xl font-semibold text-gray-700 mb-4">SEO Assistant</h3><div className="bg-white p-6 rounded-lg shadow-md"><p className="text-sm text-gray-600 mb-4">Top keywords from similar Etsy listings:</p><div className="flex flex-wrap gap-2">{seoAnalysis.top_keywords.map((k)=>(<span key={k} className="bg-gray-200 text-gray-800 text-sm font-medium px-3 py-1 rounded-full">{k}</span>))}</div><button onClick={handleGenerateContent} disabled={isGenerating} className="mt-6 w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-400">{isGenerating?'Generating...':'✨ Generate Titles & Description'}</button></div></div>)}{aiContent && (<div><h3 className="text-xl font-semibold text-gray-700 mb-4">AI Generated Content</h3><div className="bg-white p-6 rounded-lg shadow-md space-y-6"><div><h4 className="font-semibold text-gray-800">Suggested Titles:</h4><ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">{aiContent.titles.map((t,i)=><li key={i}>{t}</li>)}</ul></div><div><h4 className="font-semibold text-gray-800">Suggested Description:</h4><p className="mt-2 text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap">{aiContent.description}</p></div></div></div>)}</div>
-                                                    </div>
-                                                )}
                                                 {activeAnalysisTab === 'ebay' && ebayAnalysis && (
                                                     <div className="space-y-8">
                                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center"><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Listings Found</p><p className="text-xl font-bold text-gray-800">{ebayAnalysis.count}</p></div><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Average Price</p><p className="text-xl font-bold text-blue-600">£{ebayAnalysis.average_price.toFixed(2)}</p></div><div className="bg-white p-4 rounded-lg shadow-sm border"><p className="text-sm text-gray-500">Price Range</p><p className="text-xl font-bold text-gray-800">£{ebayAnalysis.min_price.toFixed(2)} - £{ebayAnalysis.max_price.toFixed(2)}</p></div></div>
-                                                        <div><h3 className="text-xl font-semibold text-gray-700 mb-4">eBay Listings (Sorted by Price)</h3><div className="bg-white p-4 rounded-lg shadow-md"><ul className="divide-y divide-gray-200">{sortedEbayListings.map((l)=>(<li key={`eBay-${l.listing_id}`} className="py-3 flex justify-between items-center gap-2"><p className="text-gray-800 text-sm flex-1">{l.title}</p><span className="font-semibold text-gray-800 w-16 text-right">£{(l.price.amount / l.price.divisor).toFixed(2)}</span><button onClick={()=>handleFindSimilar(l.listing_id,l.title)} className="p-2 rounded-full hover:bg-gray-200" title="Find similar items on eBay"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></button></li>))}</ul></div></div>
+                                                        <div>
+                                                            <h3 className="text-xl font-semibold text-gray-700 mb-4">
+                                                                eBay Listings {displayMode === 'curated' ? '(Price Snapshot)' : '(Sorted by Price)'}
+                                                            </h3>
+                                                            <div className="bg-white p-4 rounded-lg shadow-md">
+                                                                <ul className="divide-y divide-gray-200">
+                                                                    {listingsToDisplay.map((l)=>(<li key={`eBay-${l.listing_id}`} className="py-3 flex justify-between items-center gap-2"><p className="text-gray-800 text-sm flex-1">{l.title}</p><span className="font-semibold text-gray-800 w-16 text-right">£{(l.price.amount / l.price.divisor).toFixed(2)}</span><button onClick={()=>handleFindSimilar(l.listing_id,l.title)} className="p-2 rounded-full hover:bg-gray-200" title="Find similar items on eBay"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></button></li>))}
+                                                                </ul>
+                                                                <div className="mt-4 pt-4 border-t border-gray-200 flex justify-center">
+                                                                    {displayMode === 'curated' && sortedEbayListings.length > 6 && (
+                                                                        <button onClick={() => setDisplayMode('full')} className="text-indigo-600 font-semibold hover:underline">
+                                                                            Show All {sortedEbayListings.length} Items (Sorted by Price)
+                                                                        </button>
+                                                                    )}
+                                                                    {displayMode === 'full' && paginationCount < sortedEbayListings.length && (
+                                                                        <button onClick={() => setPaginationCount(prev => prev + 50)} className="text-indigo-600 font-semibold hover:underline">
+                                                                            Show More Items
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {activeAnalysisTab === 'etsy' && (
+                                                    <div className="text-center text-gray-500 py-8 px-4 bg-white rounded-lg shadow-md">
+                                                        <h2 className="text-2xl font-bold text-gray-800">Etsy Integration Pending</h2>
+                                                        <p className="mt-2">Live Etsy data is currently unavailable as the API key is pending manual approval.</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -267,13 +131,11 @@ export default function Home() {
                         )}
                         {activeTab === 'workshop' && (
                             <div>
-                                {isAuthLoading ? (
-                                    <p className="text-center text-gray-500 py-8">Loading user session...</p>
-                                ) : !user ? (
+                                {isAuthLoading ? ( <p className="text-center text-gray-500 py-8">Loading user session...</p> ) : !user ? (
                                     <div className="text-center text-gray-500 py-8 px-4 bg-white rounded-lg shadow-md">
                                         <h2 className="text-2xl font-bold text-gray-800">Welcome to the Workshop Manager!</h2>
                                         <p className="mt-2">This is your private space to manage materials and product recipes.</p>
-                                        <p className="mt-4">Please <a href="/login" className="text-indigo-600 font-semibold hover:underline">log in</a> or <a href="/register" className="text-indigo-600 font-semibold hover:underline">register</a> to get started.</p>
+                                        <p className="mt-4">Please <Link href="/login" className="text-indigo-600 font-semibold hover:underline">log in</Link> or <Link href="/register" className="text-indigo-600 font-semibold hover:underline">register</Link> to get started.</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
