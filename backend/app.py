@@ -14,13 +14,13 @@ from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
-# --- Step 1: Initialize extensions ---
+# --- Step 1: Initialize extensions without an app instance ---
 db = SQLAlchemy()
 migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 
-# --- API Clients Setup ---
+# --- API Clients Setup (will be loaded by create_app) ---
 EBAY_PROD_CLIENT_ID = None
 EBAY_PROD_CLIENT_SECRET = None
 EBAY_PROD_RUNAME = None
@@ -149,6 +149,7 @@ def create_app():
             try:
                 response = requests.post(url, headers=headers, data=body); response.raise_for_status()
                 data = response.json()
+                print("--- Successfully refreshed eBay user access token. ---")
                 return data['access_token']
             except Exception as e:
                 print(f"!!! Could not refresh eBay user access token: {e}"); return None
@@ -252,7 +253,6 @@ def create_app():
             data = request.get_json(); new_material = Material(name=data['name'], cost=float(data['cost']), quantity=float(data['quantity']), unit=data['unit'], owner=current_user)
             db.session.add(new_material); db.session.commit(); return jsonify({"message": "Material added"}), 201
         
-        # --- NEW: EDIT MATERIAL ENDPOINT ---
         @app.route('/api/materials/<int:material_id>', methods=['PUT'])
         @login_required
         def update_material(material_id):
@@ -283,13 +283,13 @@ def create_app():
                 hourly_rate=float(data.get('hourly_rate', 0)),
                 profit_margin=float(data.get('profit_margin', 100))
             )
-            db.session.add(new_product); db.session.commit() # Commit to get product.id
+            db.session.add(new_product); db.session.commit() 
             for item in data['recipe']:
                 recipe_item = RecipeItem(material_id=int(item['material_id']), quantity=float(item['quantity']), product_id=new_product.id)
                 db.session.add(recipe_item)
             db.session.commit()
             return jsonify({"message": "Product added"}), 201
-
+        
         @app.route('/api/products/<int:product_id>', methods=['PUT'])
         @login_required
         def update_product(product_id):
@@ -321,7 +321,8 @@ def create_app():
         def analyse_market():
             try: material_cost = float(request.args.get('cost', 0)); search_query = request.args.get('query', 'jesmonite tray')
             except (ValueError, TypeError): return jsonify({"error": "Invalid request parameters"}), 400
-            etsy_listings = []; ebay_listings = search_ebay_production(search_query)
+            etsy_listings = []
+            ebay_listings = search_ebay_production(search_query)
             etsy_analysis = analyse_prices(etsy_listings); ebay_analysis = analyse_prices(ebay_listings); combined_analysis = analyse_prices(etsy_listings + ebay_listings)
             average_price = combined_analysis['average_price'] if combined_analysis['count'] > 0 else 0
             PLATFORM_FEE_PERCENTAGE, PLATFORM_FIXED_FEE, SHIPPING_COST = 0.10, 0.20, 3.20
@@ -404,7 +405,7 @@ def create_app():
             try:
                 response = requests.put(inventory_url, headers=inventory_headers, json=inventory_payload)
                 response.raise_for_status()
-                offer_url = f"httpsm://api.ebay.com/sell/inventory/v1/offer"
+                offer_url = f"https://api.ebay.com/sell/inventory/v1/offer"
                 offer_payload = {"sku": sku, "marketplaceId": "EBAY_GB", "format": "FIXED_PRICE", "listingDescription": description, "availableQuantity": 1, "pricingSummary": {"price": { "value": str(price), "currency": "GBP" }}, "listingPolicies": {"fulfillmentPolicyId": "375545969023", "paymentPolicyId": "375545763023", "returnPolicyId": "375545771023"}, "categoryId": "11700", "merchantLocationKey": "ALLY_DEFAULT"}
                 response = requests.post(offer_url, headers=inventory_headers, json=offer_payload)
                 response.raise_for_status()

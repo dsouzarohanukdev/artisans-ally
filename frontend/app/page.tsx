@@ -9,10 +9,11 @@ import { useArtisanAlly } from '@/hooks/useArtisanAlly'; // <-- IMPORT THE ENGIN
 type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'eBay'; };
 
 export default function Home() {
+    // --- This one line now correctly imports all logic ---
     const {
         user, isAuthLoading, router,
         searchTerm, setSearchTerm,
-        totalCost, setTotalCost, // Renamed from materialCost
+        totalCost, setTotalCost,
         isLoading, error,
         selectedProductId, setSelectedProductId,
         ebayListings,
@@ -40,7 +41,7 @@ export default function Home() {
         sortedEbayListings,
         displayMode, setDisplayMode,
         paginationCount, setPaginationCount,
-
+        
         isProductListOpen, setIsProductListOpen,
         handleProductSelect, handleSearchTermChange,
         filteredProducts
@@ -79,7 +80,7 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {/* --- PRODUCTS & RECIPES COLUMN --- */}
+                            {/* --- PRODUCTS & RECIPES COLUMN (NOW FIRST) --- */}
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-xl font-semibold text-gray-700">Your Products & Recipes</h3>
@@ -113,7 +114,7 @@ export default function Home() {
                                     </div>
                                 )}
                             </div>
-                            {/* --- MATERIALS INVENTORY COLUMN --- */}
+                            {/* --- MATERIALS INVENTORY COLUMN (NOW SECOND) --- */}
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-xl font-semibold text-gray-700">Your Materials Inventory</h3>
@@ -156,7 +157,7 @@ export default function Home() {
                                     value={searchTerm} 
                                     onChange={handleSearchTermChange}
                                     onFocus={() => setIsProductListOpen(true)}
-                                    onBlur={() => setTimeout(() => setIsProductListOpen(false), 200)} // Delay to allow click
+                                    onBlur={() => setTimeout(() => setIsProductListOpen(false), 200)} 
                                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
                                 />
                                 {isProductListOpen && user && filteredProducts.length > 0 && (
@@ -165,7 +166,7 @@ export default function Home() {
                                             {filteredProducts.map(product => (
                                                 <li 
                                                     key={product.id} 
-                                                    onMouseDown={() => handleProductSelect(product)} // Use onMouseDown to fire before blur
+                                                    onMouseDown={() => handleProductSelect(product)} 
                                                     className="p-3 hover:bg-gray-100 cursor-pointer"
                                                 >
                                                     <p className="font-semibold">{product.name}</p>
@@ -213,7 +214,12 @@ export default function Home() {
                                         <h3 className="font-semibold text-gray-800">{s.name}</h3>
                                         <p className="text-sm text-gray-500">Set Price at:</p>
                                         <p className="text-3xl font-bold text-gray-900 my-2">£{s.price.toFixed(2)}</p>
-                                        <p className="text-xl text-green-600">£{s.profit.toFixed(2)}</p>
+                                        
+                                        {/* --- THIS IS THE CORRECTED LINE --- */}
+                                        <p className={`text-xl font-semibold ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {s.profit >= 0 ? `£${s.profit.toFixed(2)}` : `-£${Math.abs(s.profit).toFixed(2)}`}
+                                        </p>
+                                        
                                         <p className="text-sm text-gray-500">Estimated Profit</p>
                                     </div>
                                 ))}
@@ -230,6 +236,7 @@ export default function Home() {
                             <div className="border-b border-gray-200">
                                 <nav className="-mb-px flex gap-6" aria-label="Platform Tabs">
                                     <button onClick={() => setActiveAnalysisTab('ebay')} className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${activeAnalysisTab === 'ebay' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>eBay Analysis</button>
+                                    {/* The Etsy tab is now removed for a cleaner UI */}
                                 </nav>
                             </div>
                             <div className="mt-8">
@@ -280,6 +287,7 @@ export default function Home() {
                                 <div className="flex justify-end gap-4 mt-8">
                                     <button type="button" onClick={closeMaterialModal} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">Cancel</button>
                                     <button type="submit" className="bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700">{editingMaterial ? 'Save Changes' : 'Add Material'}</button>
+
                                 </div>
                             </form>
                         </div>
@@ -294,6 +302,7 @@ export default function Home() {
                             
                             <form onSubmit={handleProductSubmit}>
                                 <div className="space-y-6">
+                                    {/* --- YOUR NEW FLOW --- */}
                                     <div>
                                         <label htmlFor="productName" className="block text-sm font-medium text-gray-700">1. Product Name</label>
                                         <input type="text" id="productName" placeholder="e.g., Sage Green Tray" value={productForm.name} onChange={e => setProductForm({...productForm, name: e.target.value})} required className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md"/>

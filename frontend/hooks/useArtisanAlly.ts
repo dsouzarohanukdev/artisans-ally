@@ -30,7 +30,7 @@ export const useArtisanAlly = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('jesmonite tray');
-    const [totalCost, setTotalCost] = useState('');
+    const [totalCost, setTotalCost] = useState(''); // Renamed from materialCost
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
@@ -83,7 +83,6 @@ export const useArtisanAlly = () => {
         else { setWorkshopData({ materials: [], products: [] }); setIsWorkshopLoading(false); }
     }, [user]);
 
-    // This is now just a fallback if the user types manually
     useEffect(() => {
         if (selectedProductId) {
             const product = workshopData.products.find(p => p.id === parseInt(selectedProductId));
@@ -117,7 +116,6 @@ export const useArtisanAlly = () => {
         } finally { setIsLoading(false); }
     };
 
-    // --- NEW: Handler for the smart search ---
     const handleProductSelect = (product: Product) => {
         setSearchTerm(product.name);
         setSelectedProductId(String(product.id));
@@ -127,16 +125,14 @@ export const useArtisanAlly = () => {
 
     const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setSelectedProductId(''); // Clear selected product if user types manually
-        setIsProductListOpen(true); // Open the suggestions
+        setSelectedProductId('');
+        setIsProductListOpen(true);
     };
 
-    // --- NEW: Filter products based on search term ---
     const filteredProducts = workshopData.products.filter(product => 
         product.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
-    // --- (All other handlers: openMaterialModal, handleProductSubmit, etc. are correct and unchanged) ---
     const openMaterialModal = (material: Material | null = null) => {
         if (material) {
             setEditingMaterial(material);
