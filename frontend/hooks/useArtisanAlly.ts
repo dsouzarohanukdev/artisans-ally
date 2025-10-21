@@ -5,14 +5,23 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
 // --- Type Definitions ---
-type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'Etsy' | 'eBay'; };
+type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'eBay'; };
 type AnalysisBreakdown = { count: number; average_price: number; min_price: number; max_price: number; };
 type ProfitScenario = { name: string; price: number; profit: number; };
-type SeoAnalysis = { top_keywords: string[]; };
-type AiContent = { titles: string[]; description: string; };
 type Material = { id: number; name: string; cost: number; quantity: number; unit: string; cost_per_unit?: number; };
 type RecipeItem = { material_id: string; quantity: string; };
-type Product = { id: number; name: string; recipe: { material_id: number; quantity: number }[]; cogs?: number; };
+type Product = { 
+    id: number; 
+    name: string; 
+    recipe: { material_id: number; quantity: number }[];
+    labour_hours: number;
+    hourly_rate: number;
+    profit_margin: number;
+    material_cost: number;
+    labour_cost: number;
+    total_cost: number;
+    suggested_price: number;
+};
 type WorkshopData = { materials: Material[]; products: Product[]; };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -21,25 +30,32 @@ export const useArtisanAlly = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('jesmonite tray');
-    const [materialCost, setMaterialCost] = useState('');
+    const [totalCost, setTotalCost] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
-    const [etsyListings, setEtsyListings] = useState<Listing[]>([]);
+    
+    // --- NEW: State for the smart combobox ---
+    const [isProductListOpen, setIsProductListOpen] = useState(false);
+    
     const [ebayListings, setEbayListings] = useState<Listing[]>([]);
     const [overallAnalysis, setOverallAnalysis] = useState<AnalysisBreakdown | null>(null);
-    const [etsyAnalysis, setEtsyAnalysis] = useState<AnalysisBreakdown | null>(null);
     const [ebayAnalysis, setEbayAnalysis] = useState<AnalysisBreakdown | null>(null);
     const [scenarios, setScenarios] = useState<ProfitScenario[]>([]);
-    const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [aiContent, setAiContent] = useState<AiContent | null>(null);
     const [workshopData, setWorkshopData] = useState<WorkshopData>({ materials: [], products: [] });
     const [isWorkshopLoading, setIsWorkshopLoading] = useState(true);
-    const [newMaterial, setNewMaterial] = useState({ name: '', cost: '', quantity: '', unit: 'g' });
+    const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-    const [newProductName, setNewProductName] = useState('');
-    const [newProductRecipe, setNewProductRecipe] = useState<RecipeItem[]>([{ material_id: '', quantity: '' }]);
+    const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [materialForm, setMaterialForm] = useState({ name: '', cost: '', quantity: '', unit: 'g' });
+    const [productForm, setProductForm] = useState({
+        name: '',
+        recipe: [{ material_id: '', quantity: '' }] as RecipeItem[],
+        labourHours: '0.5',
+        hourlyRate: '15',
+        profitMargin: '100'
+    });
     const [isRelatedModalOpen, setIsRelatedModalOpen] = useState(false);
     const [relatedItems, setRelatedItems] = useState<Listing[]>([]);
     const [isRelatedLoading, setIsRelatedLoading] = useState(false);
@@ -67,102 +83,132 @@ export const useArtisanAlly = () => {
         else { setWorkshopData({ materials: [], products: [] }); setIsWorkshopLoading(false); }
     }, [user]);
 
+    // This is now just a fallback if the user types manually
     useEffect(() => {
         if (selectedProductId) {
             const product = workshopData.products.find(p => p.id === parseInt(selectedProductId));
-            if (product && product.cogs) { setMaterialCost(product.cogs.toFixed(2)); }
+            if (product && product.total_cost) {
+                setTotalCost(product.total_cost.toFixed(2));
+            }
         }
     }, [selectedProductId, workshopData.products]);
 
     useEffect(() => { if (!user) { setActiveTab('analysis'); } }, [user]);
 
     const handleAnalyse = async () => {
-        if (!materialCost) { setError("Please enter a material cost or select a product."); return; }
-        setIsLoading(true); setError(''); setEtsyListings([]); setEbayListings([]);
-        setOverallAnalysis(null); setEtsyAnalysis(null); setEbayAnalysis(null);
-        setScenarios([]); setSeoAnalysis(null); setAiContent(null);
-        setActiveTab('analysis'); setActiveAnalysisTab('ebay');
+        if (!totalCost) { setError("Please enter your product's total cost first."); return; }
+        setIsLoading(true); setError(''); setEbayListings([]);
+        setOverallAnalysis(null); setEbayAnalysis(null);
+        setScenarios([]);
+        setActiveTab('analysis');
+        setActiveAnalysisTab('ebay');
         setDisplayMode('curated'); setPaginationCount(50);
         try {
-            const response = await fetch(`${API_URL}/api/analyse?cost=${materialCost}&query=${searchTerm}`);
+            const response = await fetch(`${API_URL}/api/analyse?cost=${totalCost}&query=${searchTerm}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const analysisData = await response.json();
+            
             setEbayListings(analysisData.listings.ebay);
-            setEtsyListings(analysisData.listings.etsy); 
             setOverallAnalysis(analysisData.analysis.overall);
             setEbayAnalysis(analysisData.analysis.ebay);
-            setEtsyAnalysis(analysisData.analysis.etsy); 
             setScenarios(analysisData.profit_scenarios);
-            setSeoAnalysis(analysisData.seo_analysis);
+
         } catch (err) { setError('Failed to fetch data from the backend.'); console.error(err);
         } finally { setIsLoading(false); }
     };
 
-    const handleGenerateContent = async () => {
-        if (!seoAnalysis?.top_keywords || seoAnalysis.top_keywords.length === 0) {
-            setError("No keywords found to generate content."); return;
-        }
-        setIsGenerating(true); setError(''); setAiContent(null);
-        try {
-            const response = await fetch(`${API_URL}/api/generate-content`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ keywords: seoAnalysis.top_keywords }),
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error('AI content generation failed');
-            const data = await response.json(); setAiContent(data);
-        } catch (err) { setError('Failed to generate AI content.'); console.error(err);
-        } finally { setIsGenerating(false); }
+    // --- NEW: Handler for the smart search ---
+    const handleProductSelect = (product: Product) => {
+        setSearchTerm(product.name);
+        setSelectedProductId(String(product.id));
+        setTotalCost(product.total_cost.toFixed(2));
+        setIsProductListOpen(false);
     };
+
+    const handleSearchTermChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setSelectedProductId(''); // Clear selected product if user types manually
+        setIsProductListOpen(true); // Open the suggestions
+    };
+
+    // --- NEW: Filter products based on search term ---
+    const filteredProducts = workshopData.products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     
-    const handleAddMaterial = async (e: FormEvent) => {
-        e.preventDefault();
-        const materialToAdd = { name: newMaterial.name, cost: parseFloat(newMaterial.cost), quantity: parseFloat(newMaterial.quantity), unit: newMaterial.unit };
-        try {
-            const response = await fetch(`${API_URL}/api/materials`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialToAdd),
-                credentials: 'include'
-            });
-            if (!response.ok) throw new Error("Failed to add material");
-            fetchWorkshopData();
-            setNewMaterial({ name: '', cost: '', quantity: '', unit: 'g' });
-        } catch (err) { console.error(err); setError("Failed to save new material."); }
+    // --- (All other handlers: openMaterialModal, handleProductSubmit, etc. are correct and unchanged) ---
+    const openMaterialModal = (material: Material | null = null) => {
+        if (material) {
+            setEditingMaterial(material);
+            setMaterialForm({ name: material.name, cost: String(material.cost), quantity: String(material.quantity), unit: material.unit });
+        } else {
+            setEditingMaterial(null);
+            setMaterialForm({ name: '', cost: '', quantity: '', unit: 'g' });
+        }
+        setIsMaterialModalOpen(true);
     };
-
-    const handleAddProduct = async (e: FormEvent) => {
+    const closeMaterialModal = () => { setIsMaterialModalOpen(false); setEditingMaterial(null); };
+    const handleMaterialSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        const productToAdd = { name: newProductName, recipe: newProductRecipe.filter(item => item.material_id && item.quantity).map(item => ({ material_id: parseInt(item.material_id), quantity: parseFloat(item.quantity) })) };
-        if (productToAdd.name && productToAdd.recipe.length > 0) {
+        const materialData = { name: materialForm.name, cost: parseFloat(materialForm.cost), quantity: parseFloat(materialForm.quantity), unit: materialForm.unit };
+        const url = editingMaterial ? `${API_URL}/api/materials/${editingMaterial.id}` : `${API_URL}/api/materials`;
+        const method = editingMaterial ? 'PUT' : 'POST';
+        try {
+            const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialData), credentials: 'include' });
+            if (!response.ok) throw new Error(`Failed to ${method} material`);
+            fetchWorkshopData(); closeMaterialModal();
+        } catch (err) { console.error(err); setError(`Failed to save material.`); }
+    };
+    const openProductModal = (product: Product | null = null) => {
+        if (product) {
+            setEditingProduct(product);
+            setProductForm({
+                name: product.name,
+                recipe: product.recipe.map(r => ({ material_id: String(r.material_id), quantity: String(r.quantity) })),
+                labourHours: String(product.labour_hours), hourlyRate: String(product.hourly_rate), profitMargin: String(product.profit_margin)
+            });
+        } else {
+            setEditingProduct(null);
+            setProductForm({ name: '', recipe: [{ material_id: '', quantity: '' }], labourHours: '0.5', hourlyRate: '15', profitMargin: '100' });
+        }
+        setIsProductModalOpen(true);
+    };
+    const closeProductModal = () => { setIsProductModalOpen(false); setEditingProduct(null); };
+    const handleProductSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        const productData = { 
+            name: productForm.name, 
+            recipe: productForm.recipe.filter(item => item.material_id && item.quantity).map(item => ({ material_id: parseInt(item.material_id), quantity: parseFloat(item.quantity) })),
+            labour_hours: parseFloat(productForm.labourHours) || 0,
+            hourly_rate: parseFloat(productForm.hourlyRate) || 0,
+            profit_margin: parseFloat(productForm.profitMargin) || 100,
+        };
+        if (productData.name && productData.recipe.length > 0) {
+            const url = editingProduct ? `${API_URL}/api/products/${editingProduct.id}` : `${API_URL}/api/products`;
+            const method = editingProduct ? 'PUT' : 'POST';
             try {
-                const response = await fetch(`${API_URL}/api/products`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productToAdd),
-                    credentials: 'include'
-                });
-                if (!response.ok) throw new Error("Failed to add product");
-                fetchWorkshopData();
-                setIsProductModalOpen(false); setNewProductName(''); setNewProductRecipe([{ material_id: '', quantity: '' }]);
-            } catch (err) { console.error(err); setError("Failed to save new product."); }
+                const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData), credentials: 'include' });
+                if (!response.ok) throw new Error(`Failed to ${method} product`);
+                fetchWorkshopData(); closeProductModal();
+            } catch (err) { console.error(err); setError("Failed to save product."); }
         }
     };
-
     const handleDeleteMaterial = async (materialId: number) => {
-        if (!window.confirm('Are you sure you want to permanently delete this material?')) return;
+        if (!window.confirm('Are you sure?')) return;
         try {
             const response = await fetch(`${API_URL}/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete material.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the material.'); }
     };
-
     const handleDeleteProduct = async (productId: number) => {
-        if (!window.confirm('Are you sure you want to permanently delete this product?')) return;
+        if (!window.confirm('Are you sure?')) return;
         try {
             const response = await fetch(`${API_URL}/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete product.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the product.'); }
     };
-    
     const handleFindSimilar = async (itemId: string | number, title: string) => {
         setIsRelatedModalOpen(true); setIsRelatedLoading(true); setSelectedListingTitle(title);
         setRelatedItems([]); setError('');
@@ -171,49 +217,53 @@ export const useArtisanAlly = () => {
             if (!response.ok) throw new Error("Failed to fetch related items.");
             const data = await response.json(); setRelatedItems(data.listings || []);
         } catch (err) {
-            console.error(err); setError("Could not load related items at this time.");
+            console.error(err); setError("Could not load related items.");
             setTimeout(() => { setIsRelatedModalOpen(false); setError(''); }, 2000);
         } finally { setIsRelatedLoading(false); }
     };
-
     const handleRecipeChange = (index: number, field: 'material_id' | 'quantity', value: string) => {
-        const updatedRecipe = [...newProductRecipe];
+        const updatedRecipe = [...productForm.recipe];
         updatedRecipe[index] = { ...updatedRecipe[index], [field]: value };
-        setNewProductRecipe(updatedRecipe);
+        setProductForm(prev => ({...prev, recipe: updatedRecipe}));
     };
-
     const removeRecipeItem = (index: number) => {
-        const updatedRecipe = newProductRecipe.filter((_, i) => i !== index);
-        if (updatedRecipe.length === 0) { setNewProductRecipe([{ material_id: '', quantity: '' }]); } else { setNewProductRecipe(updatedRecipe); }
+        const updatedRecipe = productForm.recipe.filter((_, i) => i !== index);
+        if (updatedRecipe.length === 0) { setProductForm(prev => ({...prev, recipe: [{ material_id: '', quantity: '' }]}));
+        } else { setProductForm(prev => ({...prev, recipe: updatedRecipe})); }
     };
+    const addRecipeItem = () => { setProductForm(prev => ({...prev, recipe: [...prev.recipe, { material_id: '', quantity: '' }]})) };
     
     const sortedEbayListings = [...ebayListings].sort((a, b) => (a.price.amount / a.price.divisor) - (b.price.amount / b.price.divisor));
-    const sortedEtsyListings = [...etsyListings].sort((a, b) => (a.price.amount / a.price.divisor) - (b.price.amount / b.price.divisor));
 
     return {
         user, isAuthLoading, router,
         searchTerm, setSearchTerm,
-        materialCost, setMaterialCost,
+        totalCost, setTotalCost,
         isLoading, error,
         selectedProductId, setSelectedProductId,
-        etsyListings, ebayListings,
-        overallAnalysis, etsyAnalysis, ebayAnalysis,
-        scenarios, seoAnalysis, isGenerating, aiContent,
+        ebayListings,
+        overallAnalysis, ebayAnalysis,
+        scenarios,
         workshopData, isWorkshopLoading,
-        newMaterial, setNewMaterial,
-        isProductModalOpen, setIsProductModalOpen,
-        newProductName, setNewProductName,
-        newProductRecipe, setNewProductRecipe,
+        isMaterialModalOpen, openMaterialModal, closeMaterialModal,
+        materialForm, setMaterialForm, handleMaterialSubmit,
+        editingMaterial,
+        isProductModalOpen, openProductModal, closeProductModal,
+        productForm, setProductForm, handleProductSubmit,
+        handleRecipeChange, removeRecipeItem, addRecipeItem,
+        editingProduct,
+        handleDeleteMaterial, handleDeleteProduct,
         isRelatedModalOpen, setIsRelatedModalOpen,
         relatedItems, isRelatedLoading, selectedListingTitle,
+        handleFindSimilar, 
         activeTab, setActiveTab,
         activeAnalysisTab, setActiveAnalysisTab,
-        handleAnalyse, handleGenerateContent,
-        handleAddMaterial, handleAddProduct,
-        handleDeleteMaterial, handleDeleteProduct,
-        handleFindSimilar, handleRecipeChange, removeRecipeItem,
-        sortedEbayListings, sortedEtsyListings,
+        handleAnalyse,
+        sortedEbayListings,
         displayMode, setDisplayMode,
-        paginationCount, setPaginationCount
+        paginationCount, setPaginationCount,
+        isProductListOpen, setIsProductListOpen,
+        handleProductSelect, handleSearchTermChange,
+        filteredProducts
     };
 };
