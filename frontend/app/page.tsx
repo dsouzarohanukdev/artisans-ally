@@ -3,13 +3,12 @@
 import { FormEvent } from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
-import { useArtisanAlly } from '@/hooks/useArtisanAlly'; // <-- IMPORT THE ENGINE
+import { useArtisanAlly } from '@/hooks/useArtisanAlly';
 
 // --- Type Definitions ---
 type Listing = { listing_id: string | number; title: string; price: { amount: number; divisor: number; }; source: 'eBay'; };
 
 export default function Home() {
-    // --- This one line now correctly imports all logic ---
     const {
         user, isAuthLoading, router,
         searchTerm, setSearchTerm,
@@ -19,29 +18,24 @@ export default function Home() {
         ebayListings,
         overallAnalysis, ebayAnalysis,
         scenarios,
-        workshopData, isWorkshopLoading,
-        
+        workshopData, isWorkshopLoading,        
         isMaterialModalOpen, openMaterialModal, closeMaterialModal,
         materialForm, setMaterialForm, handleMaterialSubmit,
-        editingMaterial,
-        
+        editingMaterial,        
         isProductModalOpen, openProductModal, closeProductModal,
         productForm, setProductForm, handleProductSubmit,
         handleRecipeChange, removeRecipeItem, addRecipeItem,
         editingProduct,
-
         handleDeleteMaterial, handleDeleteProduct,
         isRelatedModalOpen, setIsRelatedModalOpen,
         relatedItems, isRelatedLoading, selectedListingTitle,
-        handleFindSimilar, 
-        
+        handleFindSimilar,         
         activeTab, setActiveTab,
         activeAnalysisTab, setActiveAnalysisTab,
         handleAnalyse,
         sortedEbayListings,
         displayMode, setDisplayMode,
-        paginationCount, setPaginationCount,
-        
+        paginationCount, setPaginationCount,        
         isProductListOpen, setIsProductListOpen,
         handleProductSelect, handleSearchTermChange,
         filteredProducts

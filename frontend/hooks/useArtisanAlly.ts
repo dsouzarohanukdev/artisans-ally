@@ -30,14 +30,11 @@ export const useArtisanAlly = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('jesmonite tray');
-    const [totalCost, setTotalCost] = useState(''); // Renamed from materialCost
+    const [totalCost, setTotalCost] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
-    
-    // --- NEW: State for the smart combobox ---
-    const [isProductListOpen, setIsProductListOpen] = useState(false);
-    
+    const [isProductListOpen, setIsProductListOpen] = useState(false);    
     const [ebayListings, setEbayListings] = useState<Listing[]>([]);
     const [overallAnalysis, setOverallAnalysis] = useState<AnalysisBreakdown | null>(null);
     const [ebayAnalysis, setEbayAnalysis] = useState<AnalysisBreakdown | null>(null);

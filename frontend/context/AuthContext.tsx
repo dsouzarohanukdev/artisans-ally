@@ -1,14 +1,9 @@
 'use client';
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-interface User {
-  email: string;
-  has_ebay_token: boolean;
-}
-
+interface User { email: string; has_ebay_token: boolean; }
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -16,7 +11,6 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -28,51 +22,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const res = await fetch(`${API_URL}/api/check_session`, { credentials: 'include' });
         const data = await res.json();
-        if (data.logged_in) {
-          setUser(data.user);
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-      } finally {
-        setIsLoading(false);
-      }
+        if (data.logged_in) { setUser(data.user); }
+      } catch (error) { console.error('Session check failed:', error);
+      } finally { setIsLoading(false); }
     };
     checkLoggedIn();
   }, []);
 
   const register = async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/api/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include',
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }), credentials: 'include',
     });
     const data = await res.json();
-    if (res.ok) {
-      setUser(data.user);
-    }
+    if (res.ok) { setUser(data.user); }
     return data;
   };
 
   const login = async (email: string, password: string) => {
     const res = await fetch(`${API_URL}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-      credentials: 'include',
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }), credentials: 'include',
     });
     const data = await res.json();
-    if (res.ok) {
-      setUser(data.user);
-    }
+    if (res.ok) { setUser(data.user); }
     return data;
   };
 
   const logout = async () => {
-    await fetch(`${API_URL}/api/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
+    await fetch(`${API_URL}/api/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
   };
 
@@ -85,8 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) { throw new Error('useAuth must be used within an AuthProvider'); }
   return context;
 };
