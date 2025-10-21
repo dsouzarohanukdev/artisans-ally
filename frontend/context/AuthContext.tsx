@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkLoggedIn = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/check_session`, { credentials: 'include' });
+        const res = await fetch(`/api/check_session`, { credentials: 'include' });
         const data = await res.json();
         if (data.logged_in) { setUser(data.user); }
       } catch (error) { console.error('Session check failed:', error);
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const register = async (email: string, password: string) => {
-    const res = await fetch(`${API_URL}/api/register`, {
+    const res = await fetch(`/api/register`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }), credentials: 'include',
     });
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${API_URL}/api/login`, {
+    const res = await fetch(`/api/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }), credentials: 'include',
     });
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetch(`${API_URL}/api/logout`, { method: 'POST', credentials: 'include' });
+    await fetch(`/api/logout`, { method: 'POST', credentials: 'include' });
     setUser(null);
   };
 

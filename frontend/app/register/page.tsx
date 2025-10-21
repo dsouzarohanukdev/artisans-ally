@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Import the Link component
+import Link from 'next/link';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -29,19 +29,14 @@ export default function RegisterPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      {/* --- THIS DIV IS NOW 'relative' --- */}
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md relative">
-
-        {/* --- THIS IS THE NEW CLOSE BUTTON --- */}
         <div className="absolute top-4 right-4">
           <Link href="/" className="text-gray-400 hover:text-gray-600" title="Close">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </Link>
-        </div>
-        {/* --- END OF NEW BUTTON --- */}
-        
+        </div>        
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Create Your Account</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

@@ -65,7 +65,7 @@ export const useArtisanAlly = () => {
     const fetchWorkshopData = async () => {
         setIsWorkshopLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/workshop`, { credentials: 'include' });
+            const response = await fetch(`/api/workshop`, { credentials: 'include' });
             if (!response.ok) {
                 if (response.status === 401) { setWorkshopData({ materials: [], products: [] }); return; }
                 throw new Error("Failed to fetch workshop data");
@@ -100,7 +100,7 @@ export const useArtisanAlly = () => {
         setActiveAnalysisTab('ebay');
         setDisplayMode('curated'); setPaginationCount(50);
         try {
-            const response = await fetch(`${API_URL}/api/analyse?cost=${totalCost}&query=${searchTerm}`);
+            const response = await fetch(`/api/analyse?cost=${totalCost}&query=${searchTerm}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const analysisData = await response.json();
             
@@ -144,7 +144,7 @@ export const useArtisanAlly = () => {
     const handleMaterialSubmit = async (e: FormEvent) => {
         e.preventDefault();
         const materialData = { name: materialForm.name, cost: parseFloat(materialForm.cost), quantity: parseFloat(materialForm.quantity), unit: materialForm.unit };
-        const url = editingMaterial ? `${API_URL}/api/materials/${editingMaterial.id}` : `${API_URL}/api/materials`;
+        const url = editingMaterial ? `/api/materials/${editingMaterial.id}` : `/api/materials`;
         const method = editingMaterial ? 'PUT' : 'POST';
         try {
             const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialData), credentials: 'include' });
@@ -177,7 +177,7 @@ export const useArtisanAlly = () => {
             profit_margin: parseFloat(productForm.profitMargin) || 100,
         };
         if (productData.name && productData.recipe.length > 0) {
-            const url = editingProduct ? `${API_URL}/api/products/${editingProduct.id}` : `${API_URL}/api/products`;
+            const url = editingProduct ? `/api/products/${editingProduct.id}` : `/api/products`;
             const method = editingProduct ? 'PUT' : 'POST';
             try {
                 const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData), credentials: 'include' });
@@ -189,7 +189,7 @@ export const useArtisanAlly = () => {
     const handleDeleteMaterial = async (materialId: number) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            const response = await fetch(`${API_URL}/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete material.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the material.'); }
@@ -197,7 +197,7 @@ export const useArtisanAlly = () => {
     const handleDeleteProduct = async (productId: number) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            const response = await fetch(`${API_URL}/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete product.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the product.'); }
@@ -206,7 +206,7 @@ export const useArtisanAlly = () => {
         setIsRelatedModalOpen(true); setIsRelatedLoading(true); setSelectedListingTitle(title);
         setRelatedItems([]); setError('');
         try {
-            const response = await fetch(`${API_URL}/api/related-items/${itemId}`);
+            const response = await fetch(`/api/related-items/${itemId}`);
             if (!response.ok) throw new Error("Failed to fetch related items.");
             const data = await response.json(); setRelatedItems(data.listings || []);
         } catch (err) {

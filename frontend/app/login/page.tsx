@@ -2,7 +2,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Import the Link component
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -29,10 +29,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      {/* --- THIS DIV IS NOW 'relative' --- */}
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md relative">
-        
-        {/* --- THIS IS THE NEW CLOSE BUTTON --- */}
         <div className="absolute top-4 right-4">
           <Link href="/" className="text-gray-400 hover:text-gray-600" title="Close">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -40,8 +37,6 @@ export default function LoginPage() {
             </svg>
           </Link>
         </div>
-        {/* --- END OF NEW BUTTON --- */}
-
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Log In to Artisan's Ally</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

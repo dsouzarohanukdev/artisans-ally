@@ -21,7 +21,6 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              {/* --- THIS IS THE NEW LINK --- */}
               <Link href="/publisher" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
                 Publisher
               </Link>
