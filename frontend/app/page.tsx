@@ -64,13 +64,12 @@ export default function Home() {
                 {/* --- STEP 1: WORKSHOP MANAGER --- */}
                 <section className="mb-12">
                     <div className="text-center mb-4">
-                        <h2 className="text-3xl font-bold text-gray-800">Step 1: Know Your Costs</h2>
-                        <p className="text-lg text-gray-500 mt-2">Log in to manage your materials and product recipes to calculate your exact cost of goods.</p>
+                        <h2 className="text-3xl font-bold text-gray-800">Step 1: Know Your Costs</h2>                        
                     </div>
                     {isAuthLoading ? ( <p className="text-center text-gray-500 py-8">Loading user session...</p> ) : !user ? (
                         <div className="text-center text-gray-500 py-8 px-4 bg-white rounded-lg shadow-md">
                             <h3 className="text-2xl font-bold text-gray-800">Welcome to the Workshop Manager!</h3>
-                            <p className="mt-4">Please <Link href="/login" className="text-indigo-600 font-semibold hover:underline">log in</Link> or <Link href="/register" className="text-indigo-600 font-semibold hover:underline">register</Link> to access your private workshop.</p>
+                            <p className="mt-4">Please <Link href="/login" className="text-indigo-600 font-semibold hover:underline">log in</Link> or <Link href="/register" className="text-indigo-600 font-semibold hover:underline">register</Link> to manage your materials and product recipes to calculate your exact cost of goods and access your private workshop.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
