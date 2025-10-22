@@ -21,10 +21,10 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
-              <Link href="/publisher" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
+              {/* <Link href="/publisher" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
                 Publisher
               </Link>
-              <span className="text-sm text-gray-600">|</span>
+              <span className="text-sm text-gray-600">|</span> */}
               <span className="text-sm text-gray-600">Welcome, {user.email}</span>
               <button onClick={handleLogout} className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
                 Logout
