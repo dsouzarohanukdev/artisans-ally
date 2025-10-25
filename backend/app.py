@@ -62,7 +62,7 @@ def create_app():
     MYSQL_DB = os.environ.get('MYSQL_DB')
 
     # Create the live database URL
-    LIVE_DB_URL = f"mysql+mysqlclient://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}"
+    LIVE_DB_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}"
     
     app.config['SQLALCHEMY_DATABASE_URI'] = LIVE_DB_URL if MYSQL_USER else 'sqlite:///site.db'
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_default_secret_key_for_development_12345')
