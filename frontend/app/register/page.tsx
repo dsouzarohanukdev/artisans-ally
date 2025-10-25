@@ -7,6 +7,8 @@ import Link from 'next/link';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // --- NEW: State for currency ---
+  const [currency, setCurrency] = useState('GBP');
   const [error, setError] = useState('');
   const { register } = useAuth();
   const router = useRouter();
@@ -15,7 +17,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     try {
-      const data = await register(email, password);
+      // --- UPGRADED: Pass currency to the register function ---
+      const data = await register(email, password, currency);
       if (data.error) {
         setError(data.error);
       } else {
@@ -30,13 +33,15 @@ export default function RegisterPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md relative">
+
         <div className="absolute top-4 right-4">
           <Link href="/" className="text-gray-400 hover:text-gray-600" title="Close">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </Link>
-        </div>        
+        </div>
+        
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Create Your Account</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -47,6 +52,23 @@ export default function RegisterPage() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
             <input id="password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
+
+          {/* --- NEW: Currency Dropdown --- */}
+          <div>
+            <label htmlFor="currency" className="block text-sm font-medium text-gray-700">Select Your Currency</label>
+            <select
+              id="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="GBP">British Pound (£)</option>
+              <option value="USD">US Dollar ($)</option>
+              <option value="EUR">Euro (€)</option>
+            </select>
+          </div>
+          {/* --- END OF NEW SECTION --- */}
+
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
           <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             Register

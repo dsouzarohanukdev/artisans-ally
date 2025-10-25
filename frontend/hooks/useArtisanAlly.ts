@@ -34,7 +34,9 @@ export const useArtisanAlly = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
-    const [isProductListOpen, setIsProductListOpen] = useState(false);    
+    
+    const [isProductListOpen, setIsProductListOpen] = useState(false);
+    
     const [ebayListings, setEbayListings] = useState<Listing[]>([]);
     const [overallAnalysis, setOverallAnalysis] = useState<AnalysisBreakdown | null>(null);
     const [ebayAnalysis, setEbayAnalysis] = useState<AnalysisBreakdown | null>(null);
@@ -61,11 +63,19 @@ export const useArtisanAlly = () => {
     const [activeAnalysisTab, setActiveAnalysisTab] = useState<'ebay' | 'etsy'>('ebay');
     const [displayMode, setDisplayMode] = useState<'curated' | 'full'>('curated');
     const [paginationCount, setPaginationCount] = useState(50);
+    const [marketplace, setMarketplace] = useState('EBAY_GB');
+    const [currencySymbol, setCurrencySymbol] = useState('£');
+
+    useEffect(() => {
+        if (user?.currency === 'USD') setCurrencySymbol('$');
+        else if (user?.currency === 'EUR') setCurrencySymbol('€');
+        else setCurrencySymbol('£');
+    }, [user?.currency]);
 
     const fetchWorkshopData = async () => {
         setIsWorkshopLoading(true);
         try {
-            const response = await fetch(`/api/workshop`, { credentials: 'include' });
+            const response = await fetch(`${API_URL}/api/workshop`, { credentials: 'include' });
             if (!response.ok) {
                 if (response.status === 401) { setWorkshopData({ materials: [], products: [] }); return; }
                 throw new Error("Failed to fetch workshop data");
@@ -95,12 +105,10 @@ export const useArtisanAlly = () => {
         if (!totalCost) { setError("Please enter your product's total cost first."); return; }
         setIsLoading(true); setError(''); setEbayListings([]);
         setOverallAnalysis(null); setEbayAnalysis(null);
-        setScenarios([]);
-        setActiveTab('analysis');
-        setActiveAnalysisTab('ebay');
-        setDisplayMode('curated'); setPaginationCount(50);
-        try {
-            const response = await fetch(`/api/analyse?cost=${totalCost}&query=${searchTerm}`);
+        setScenarios([]); setActiveTab('analysis');
+        setActiveAnalysisTab('ebay'); setDisplayMode('curated'); setPaginationCount(50);
+        try { 
+            const response = await fetch(`${API_URL}/api/analyse?cost=${totalCost}&query=${searchTerm}&marketplace=${marketplace}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const analysisData = await response.json();
             
@@ -144,7 +152,7 @@ export const useArtisanAlly = () => {
     const handleMaterialSubmit = async (e: FormEvent) => {
         e.preventDefault();
         const materialData = { name: materialForm.name, cost: parseFloat(materialForm.cost), quantity: parseFloat(materialForm.quantity), unit: materialForm.unit };
-        const url = editingMaterial ? `/api/materials/${editingMaterial.id}` : `/api/materials`;
+        const url = editingMaterial ? `${API_URL}/api/materials/${editingMaterial.id}` : `${API_URL}/api/materials`;
         const method = editingMaterial ? 'PUT' : 'POST';
         try {
             const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(materialData), credentials: 'include' });
@@ -177,7 +185,7 @@ export const useArtisanAlly = () => {
             profit_margin: parseFloat(productForm.profitMargin) || 100,
         };
         if (productData.name && productData.recipe.length > 0) {
-            const url = editingProduct ? `/api/products/${editingProduct.id}` : `/api/products`;
+            const url = editingProduct ? `${API_URL}/api/products/${editingProduct.id}` : `${API_URL}/api/products`;
             const method = editingProduct ? 'PUT' : 'POST';
             try {
                 const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productData), credentials: 'include' });
@@ -189,7 +197,7 @@ export const useArtisanAlly = () => {
     const handleDeleteMaterial = async (materialId: number) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            const response = await fetch(`/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`${API_URL}/api/materials/${materialId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete material.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the material.'); }
@@ -197,7 +205,7 @@ export const useArtisanAlly = () => {
     const handleDeleteProduct = async (productId: number) => {
         if (!window.confirm('Are you sure?')) return;
         try {
-            const response = await fetch(`/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
+            const response = await fetch(`${API_URL}/api/products/${productId}`, { method: 'DELETE', credentials: 'include' });
             if (!response.ok) throw new Error('Failed to delete product.');
             fetchWorkshopData();
         } catch (err) { console.error(err); setError('Could not delete the product.'); }
@@ -206,7 +214,7 @@ export const useArtisanAlly = () => {
         setIsRelatedModalOpen(true); setIsRelatedLoading(true); setSelectedListingTitle(title);
         setRelatedItems([]); setError('');
         try {
-            const response = await fetch(`/api/related-items/${itemId}`);
+            const response = await fetch(`${API_URL}/api/related-items/${itemId}`);
             if (!response.ok) throw new Error("Failed to fetch related items.");
             const data = await response.json(); setRelatedItems(data.listings || []);
         } catch (err) {
@@ -257,6 +265,8 @@ export const useArtisanAlly = () => {
         paginationCount, setPaginationCount,
         isProductListOpen, setIsProductListOpen,
         handleProductSelect, handleSearchTermChange,
-        filteredProducts
+        filteredProducts,
+        marketplace, setMarketplace,
+        currencySymbol
     };
 };
