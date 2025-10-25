@@ -24,7 +24,8 @@ type Product = {
 };
 type WorkshopData = { materials: Material[]; products: Product[]; };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = '';
 
 export const useArtisanAlly = () => {
     const { user, isLoading: isAuthLoading } = useAuth();

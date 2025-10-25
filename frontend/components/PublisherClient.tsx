@@ -5,7 +5,8 @@ import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = '';
 
 export default function PublisherClient() {
     const { user, isLoading: isAuthLoading } = useAuth();

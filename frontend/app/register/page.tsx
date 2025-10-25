@@ -7,7 +7,6 @@ import Link from 'next/link';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // --- NEW: State for currency ---
   const [currency, setCurrency] = useState('GBP');
   const [error, setError] = useState('');
   const { register } = useAuth();
@@ -17,13 +16,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     try {
-      // --- UPGRADED: Pass currency to the register function ---
       const data = await register(email, password, currency);
       if (data.error) {
         setError(data.error);
       } else {
-        router.push('/'); // Redirect to homepage on successful registration
-        router.refresh(); // Force a refresh to update user state
+        router.push('/');
+        router.refresh();
       }
     } catch (_err) {
       setError('Failed to register. Please try again.');
