@@ -13,14 +13,17 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 
-# --- Step 1: Initialize extensions without an app instance ---
+# --- Step 1: Initialize extensions ---
 db = SQLAlchemy()
 migrate = Migrate()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 
-# --- API Clients Setup (will be loaded by create_app) ---
+# --- API Clients Setup ---
 EBAY_PROD_CLIENT_ID = None
 EBAY_PROD_CLIENT_SECRET = None
 EBAY_PROD_RUNAME = None
@@ -38,6 +41,9 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
     currency = db.Column(db.String(3), nullable=False, default='GBP')
+    reset_token = db.Column(db.String(100), unique=True, nullable=True)
+    reset_token_expiry = db.Column(db.BigInteger, nullable=True)
+    
     ebay_token = db.relationship('EbayToken', backref='user', uselist=False, cascade="all, delete-orphan")
     materials = db.relationship('Material', backref='owner', lazy=True, cascade="all, delete-orphan")
     products = db.relationship('Product', backref='owner', lazy=True, cascade="all, delete-orphan")
@@ -55,20 +61,18 @@ def create_app():
     if os.path.exists(dotenv_path):
         load_dotenv(dotenv_path)
 
-    # Get your live MySQL credentials from environment variables
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['SESSION_COOKIE_SECURE'] = True
+        
+    # --- UPGRADED: Database Configuration ---
     MYSQL_USER = os.environ.get('MYSQL_USER')
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD')
     MYSQL_HOST = os.environ.get('MYSQL_HOST')
     MYSQL_DB = os.environ.get('MYSQL_DB')
-
-    # Create the live database URL
     LIVE_DB_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}"
-    
     app.config['SQLALCHEMY_DATABASE_URI'] = LIVE_DB_URL if MYSQL_USER else 'sqlite:///site.db'
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_default_secret_key_for_development_12345')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-    app.config['SESSION_COOKIE_SECURE'] = True
     
     global EBAY_PROD_CLIENT_ID, EBAY_PROD_CLIENT_SECRET, EBAY_PROD_RUNAME, openai_client
     EBAY_PROD_CLIENT_ID = os.environ.get("EBAY_PROD_CLIENT_ID")
@@ -81,10 +85,15 @@ def create_app():
     bcrypt.init_app(app)
     login_manager.init_app(app)
     
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://freefileconverter.co.uk", "https://www.freefileconverter.co.uk", "https://artisans-ally-git-main-dsouzarohanukdev.vercel.app"]}}, supports_credentials=True)
+    CORS(app, resources={r"/api/*": {"origins": [
+        "http://localhost:3000", 
+        "https://artisans-ally-git-main-dsouzarohanukdev.vercel.app", 
+        "https://freefileconverter.co.uk", 
+        "https://www.freefileconverter.co.uk"
+    ]}}, supports_credentials=True)
 
     with app.app_context():
-        # --- Helper Functions ---
+        # --- (All helper functions are unchanged) ---
         def get_ebay_app_oauth_token():
             global ebay_app_oauth_token, ebay_app_token_expiry
             if ebay_app_oauth_token and time.time() < ebay_app_token_expiry: return ebay_app_oauth_token
@@ -202,6 +211,98 @@ def create_app():
                 return jsonify({"message": "Settings updated", "user": {"email": current_user.email, "currency": current_user.currency}}), 200
             return jsonify({"error": "No valid settings provided"}), 400
         
+        # --- UPGRADED: FORGOT PASSWORD ENDPOINT (using Brevo API) ---
+        @app.route('/api/forgot-password', methods=['POST'])
+        def forgot_password():
+            data = request.get_json()
+            email = data.get('email')
+            user = User.query.filter_by(email=email).first()
+            
+            if not user:
+                return jsonify({"message": "If an account with this email exists, a reset link has been sent."}), 200
+
+            try:
+                s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                token = s.dumps(user.email, salt='password-reset-salt')
+                
+                user.reset_token = token
+                user.reset_token_expiry = int(time.time()) + 3600 # 1 hour
+                db.session.commit()
+
+                reset_url = f"https://www.freefileconverter.co.uk/reset-password/{token}"
+                
+                # --- NEW Brevo API v3 Configuration ---
+                configuration = sib_api_v3_sdk.Configuration()
+                configuration.api_key['api-key'] = os.environ.get('BREVO_API_KEY') # <-- This is the correct key name
+
+                api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+                
+                subject = "Password Reset Request for Artisan's Ally"
+                html_content = f"""<html><body>
+                    <p>Hello,</p>
+                    <p>Someone (hopefully you) requested a password reset for your Artisan's Ally account.</p>
+                    <p>If this was you, please click the link below to reset your password. The link is valid for 1 hour.</p>
+                    <p><a href="{reset_url}">Click here to reset your password</a></p>
+                    <p>If you did not request this, please ignore this email.</p>
+                    <p>Thanks,<br/>The Artisan's Ally Team</p>
+                    </body></html>
+                    """
+                # This 'sender' email must be one you have verified with Brevo
+                sender = {"name":"Artisan's Ally","email":"noreply@freefileconverter.co.uk"}
+                to = [{"email":user.email}]
+                
+                send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+                    to=to, 
+                    html_content=html_content,
+                    sender=sender, 
+                    subject=subject
+                )
+
+                api_instance.send_transac_email(send_smtp_email)
+                # --- End of Brevo Code ---
+                
+                return jsonify({"message": "If an account with this email exists, a reset link has been sent."}), 200
+
+            except ApiException as e:
+                print(f"!!! Brevo API Exception in forgot_password: {e}")
+                return jsonify({"error": "An internal error occurred sending the email."}), 500
+            except Exception as e:
+                print(f"!!! Error in forgot_password: {e}")
+                return jsonify({"error": "An internal error occurred."}), 500
+
+        @app.route('/api/reset-password', methods=['POST'])
+        def reset_password():
+            data = request.get_json()
+            token = data.get('token')
+            new_password = data.get('password')
+            
+            if not token or not new_password:
+                return jsonify({"error": "Invalid request."}), 400
+
+            try:
+                s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+                email = s.loads(token, salt='password-reset-salt', max_age=3600)
+                
+                user = User.query.filter_by(email=email).first()
+                
+                if not user or user.reset_token != token or user.reset_token_expiry < int(time.time()):
+                    return jsonify({"error": "The reset link is invalid or has expired."}), 400
+                    
+                user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+                user.reset_token = None
+                user.reset_token_expiry = None
+                db.session.commit()
+                
+                return jsonify({"message": "Password reset successfully. Please log in."}), 200
+                
+            except SignatureExpired:
+                return jsonify({"error": "The reset link has expired."}), 400
+            except BadTimeSignature:
+                return jsonify({"error": "The reset link is invalid."}), 400
+            except Exception as e:
+                print(f"!!! Error in reset_password: {e}")
+                return jsonify({"error": "An invalid or expired link was used."}), 400
+
         @app.route('/api/workshop', methods=['GET'])
         @login_required
         def get_workshop_data():
@@ -362,8 +463,10 @@ def create_app():
         @app.route('/api/ebay/callback', methods=['GET'])
         def ebay_callback():
             auth_code = request.args.get('code'); user_id = request.args.get('state')
-            local_frontend_url = "http://localhost:3000"
-            if not auth_code or not user_id: return redirect(f'{local_frontend_url}/publisher?error=true')
+            # This must point to your VERCEL frontend URL
+            live_frontend_url = "https://www.freefileconverter.co.uk"
+            if not auth_code or not user_id: return redirect(f'{live_frontend_url}/publisher?error=true')
+            
             url = "https://api.ebay.com/identity/v1/oauth2/token"
             credentials = f"{EBAY_PROD_CLIENT_ID}:{EBAY_PROD_CLIENT_SECRET}"
             base64_credentials = base64.b64encode(credentials.encode()).decode()
@@ -378,10 +481,10 @@ def create_app():
                     user.ebay_token.refresh_token = data['refresh_token']
                     user.ebay_token.refresh_token_expiry = time.time() + data['refresh_token_expires_in']
                     db.session.commit()
-                    return redirect(f'{local_frontend_url}/publisher?success=true')
+                    return redirect(f'{live_frontend_url}/publisher?success=true')
             except Exception as e:
                 print(f"!!! Error exchanging eBay auth code: {e}")
-            return redirect(f'{local_frontend_url}/publisher?error=true')
+            return redirect(f'{live_frontend_url}/publisher?error=true')
         
         @app.route('/api/ebay/create-draft', methods=['POST'])
         @login_required

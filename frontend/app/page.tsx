@@ -19,33 +19,27 @@ export default function Home() {
         ebayListings,
         overallAnalysis, ebayAnalysis,
         scenarios,
-        workshopData, isWorkshopLoading,
-        
+        workshopData, isWorkshopLoading,        
         isMaterialModalOpen, openMaterialModal, closeMaterialModal,
         materialForm, setMaterialForm, handleMaterialSubmit,
-        editingMaterial,
-        
+        editingMaterial,        
         isProductModalOpen, openProductModal, closeProductModal,
         productForm, setProductForm, handleProductSubmit,
         handleRecipeChange, removeRecipeItem, addRecipeItem,
         editingProduct,
-
         handleDeleteMaterial, handleDeleteProduct,
         isRelatedModalOpen, setIsRelatedModalOpen,
         relatedItems, isRelatedLoading, selectedListingTitle,
-        handleFindSimilar, 
-        
+        handleFindSimilar,        
         activeTab, setActiveTab,
         activeAnalysisTab, setActiveAnalysisTab,
         handleAnalyse,
         sortedEbayListings,
         displayMode, setDisplayMode,
-        paginationCount, setPaginationCount,
-        
+        paginationCount, setPaginationCount,        
         isProductListOpen, setIsProductListOpen,
         handleProductSelect, handleSearchTermChange,
         filteredProducts,
-
         marketplace, setMarketplace,
         currencySymbol
     } = useArtisanAlly();

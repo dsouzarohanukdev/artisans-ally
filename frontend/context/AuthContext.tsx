@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (email: string, password: string, currency: string) => Promise<any>;
   logout: () => Promise<void>;
   updateCurrency: (newCurrency: string) => Promise<any>;
+  forgotPassword: (email: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,8 +99,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    const res = await fetch(`${API_URL}/api/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+      credentials: 'include',
+    });
+    return await res.json();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateCurrency }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateCurrency, forgotPassword }}>
       {children}
     </AuthContext.Provider>
   );

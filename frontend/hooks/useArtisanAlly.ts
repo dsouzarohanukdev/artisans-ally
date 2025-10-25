@@ -31,11 +31,12 @@ export const useArtisanAlly = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('jesmonite tray');
-    const [totalCost, setTotalCost] = useState('');
+    const [totalCost, setTotalCost] = useState(''); // Renamed from materialCost
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedProductId, setSelectedProductId] = useState('');
     
+    // --- NEW: State for the smart combobox ---
     const [isProductListOpen, setIsProductListOpen] = useState(false);
     
     const [ebayListings, setEbayListings] = useState<Listing[]>([]);
@@ -64,9 +65,12 @@ export const useArtisanAlly = () => {
     const [activeAnalysisTab, setActiveAnalysisTab] = useState<'ebay' | 'etsy'>('ebay');
     const [displayMode, setDisplayMode] = useState<'curated' | 'full'>('curated');
     const [paginationCount, setPaginationCount] = useState(50);
+
+    // --- NEW: State for internationalization ---
     const [marketplace, setMarketplace] = useState('EBAY_GB');
     const [currencySymbol, setCurrencySymbol] = useState('£');
 
+    // --- NEW: Effect to update symbol when user changes currency ---
     useEffect(() => {
         if (user?.currency === 'USD') setCurrencySymbol('$');
         else if (user?.currency === 'EUR') setCurrencySymbol('€');
@@ -108,7 +112,8 @@ export const useArtisanAlly = () => {
         setOverallAnalysis(null); setEbayAnalysis(null);
         setScenarios([]); setActiveTab('analysis');
         setActiveAnalysisTab('ebay'); setDisplayMode('curated'); setPaginationCount(50);
-        try { 
+        try {
+            // --- UPGRADED: Pass the marketplace to the API call ---
             const response = await fetch(`${API_URL}/api/analyse?cost=${totalCost}&query=${searchTerm}&marketplace=${marketplace}`);
             if (!response.ok) throw new Error('Network response was not ok');
             const analysisData = await response.json();
