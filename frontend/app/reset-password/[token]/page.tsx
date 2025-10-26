@@ -4,8 +4,8 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-// const API_URL = '';
+// const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = '';
 
 // We get the token from the URL parameters
 export default function ResetPasswordPage({ params }: { params: { token: string } }) {
