@@ -1,10 +1,10 @@
 'use client';
-import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -14,32 +14,43 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white shadow-md">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/" className="text-xl font-bold text-indigo-600">
-          Artisan's Ally
-        </Link>
-        <div className="flex items-center gap-4">
-          {user ? (
-            <>
-              {/* <Link href="/publisher" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-                Publisher
-              </Link>
-              <span className="text-sm text-gray-600">|</span> */}
-              <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-              <button onClick={handleLogout} className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-                Logout
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-                Login
-              </Link>
-              <Link href="/register" className="text-sm font-semibold bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700">
-                Register
-              </Link>
-            </>
-          )}
+      <div className="container mx-auto px-4 md:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex-shrink-0">
+            <Link href="/" className="text-2xl font-bold text-indigo-600">
+              Artisan's Ally
+            </Link>
+          </div>
+          <div className="flex items-center space-x-4">
+            {isLoading ? (
+              <div className="text-sm text-gray-500">Loading...</div>
+            ) : user ? (
+              <>
+                {/* <Link href="/publisher" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Publisher
+                </Link> */}
+                <Link href="/account" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  My Account
+                </Link>
+                <span className="text-gray-700 text-sm hidden md:block">Welcome, {user.email}</span>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-600"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Login
+                </Link>
+                <Link href="/register" className="bg-green-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-600">
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>

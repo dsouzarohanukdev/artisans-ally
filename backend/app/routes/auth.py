@@ -181,3 +181,24 @@ def reset_password():
     except Exception as e:
         print(f"!!! Error in reset_password: {e}")
         return jsonify({"error": "An invalid or expired link was used."}), 400
+
+# --- CHANGE PASSWORD ENDPOINT ---
+@auth_bp.route('/api/user/change-password', methods=['PUT'])
+@login_required
+def change_password():
+    data = request.get_json()
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Missing fields"}), 400
+
+    # Check if the current password is correct
+    if not bcrypt.check_password_hash(current_user.password, current_password):
+        return jsonify({"error": "Current password is incorrect"}), 403 # 403 Forbidden
+
+    # Hash the new password and save it
+    current_user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.session.commit()
+
+    return jsonify({"message": "Password updated successfully"}), 200

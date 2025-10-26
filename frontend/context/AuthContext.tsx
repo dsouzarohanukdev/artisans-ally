@@ -19,6 +19,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateCurrency: (newCurrency: string) => Promise<any>;
   forgotPassword: (email: string) => Promise<any>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -108,9 +109,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     return await res.json();
   };
+  
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const res = await fetch(`${API_URL}/api/user/change-password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+      credentials: 'include',
+    });
+    return await res.json();
+  };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateCurrency, forgotPassword }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateCurrency, forgotPassword, changePassword }}>
       {children}
     </AuthContext.Provider>
   );
