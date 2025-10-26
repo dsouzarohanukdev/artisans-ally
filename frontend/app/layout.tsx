@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import Footer from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,12 +18,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-        <GoogleAnalytics />
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <div className="flex-grow">
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+          <GoogleAnalytics />
+          <Footer />
+        </div>
       </body>
     </html>
   );

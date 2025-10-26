@@ -9,6 +9,7 @@ from .extensions import db, migrate, bcrypt, login_manager
 from .routes.auth import auth_bp
 from .routes.workshop import workshop_bp
 from .routes.api import api_bp, init_api_keys
+from .routes.general import general_bp
 
 def create_app():
     """
@@ -38,7 +39,10 @@ def create_app():
         OPENAI_API_KEY=os.environ.get("OPENAI_API_KEY"),
         
         # This is the Vercel URL for production
-        FRONTEND_URL=os.environ.get("FRONTEND_URL", "http://localhost:3000") 
+        FRONTEND_URL=os.environ.get("FRONTEND_URL", "http://localhost:3000"),
+        
+        # --- 2. ADD NEW CONFIG KEY ---
+        CONTACT_EMAIL=os.environ.get("CONTACT_EMAIL") 
     )
 
     # --- Database Configuration ---
@@ -65,6 +69,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(workshop_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(general_bp)
 
     # --- Initialize API keys for the api_routes blueprint ---
     with app.app_context():
