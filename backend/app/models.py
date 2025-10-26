@@ -13,6 +13,7 @@ class User(db.Model, UserMixin):
     currency = db.Column(db.String(3), nullable=False, default='GBP')
     reset_token = db.Column(db.String(100), unique=True, nullable=True)
     reset_token_expiry = db.Column(db.BigInteger, nullable=True)
+    email_confirmed = db.Column(db.Boolean, nullable=False, default=False)
     
     ebay_token = db.relationship('EbayToken', backref='user', uselist=False, cascade="all, delete-orphan")
     materials = db.relationship('Material', backref='owner', lazy=True, cascade="all, delete-orphan")
