@@ -37,8 +37,12 @@ export default function AboutPage() {
 
       setResponseMessage(data.message);
       setFormState({ name: '', email: '', message: '' }); // Clear form on success
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An unknown error occurred.');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setErrorMessage(err.message || 'An unknown error occurred.');
+      } else {
+        setErrorMessage('An unknown error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }
