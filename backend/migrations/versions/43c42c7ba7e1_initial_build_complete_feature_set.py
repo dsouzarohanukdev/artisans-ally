@@ -1,8 +1,8 @@
-"""Initial migration with users, materials, and products.
+"""Initial Build - Complete Feature Set
 
-Revision ID: 7f89237e6b9e
+Revision ID: 43c42c7ba7e1
 Revises: 
-Create Date: 2025-10-14 17:23:28.700572
+Create Date: 2025-10-26 22:11:35.932758
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7f89237e6b9e'
+revision = '43c42c7ba7e1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,8 +22,21 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('password', sa.String(length=60), nullable=False),
+    sa.Column('currency', sa.String(length=3), nullable=False),
+    sa.Column('reset_token', sa.String(length=100), nullable=True),
+    sa.Column('reset_token_expiry', sa.BigInteger(), nullable=True),
+    sa.Column('email_confirmed', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email')
+    sa.UniqueConstraint('email'),
+    sa.UniqueConstraint('reset_token')
+    )
+    op.create_table('ebay_token',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('refresh_token', sa.String(length=500), nullable=False),
+    sa.Column('refresh_token_expiry', sa.BigInteger(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('material',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -39,6 +52,9 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('labour_hours', sa.Float(), nullable=False),
+    sa.Column('hourly_rate', sa.Float(), nullable=False),
+    sa.Column('profit_margin', sa.Float(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -59,5 +75,6 @@ def downgrade():
     op.drop_table('recipe_item')
     op.drop_table('product')
     op.drop_table('material')
+    op.drop_table('ebay_token')
     op.drop_table('user')
     # ### end Alembic commands ###

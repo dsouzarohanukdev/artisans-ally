@@ -7,10 +7,52 @@ import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from ..extensions import db, bcrypt
-from ..models import User
+from ..models import User, EbayToken 
 
 # Create a Blueprint, which is like a "mini-app" for our auth routes
 auth_bp = Blueprint('auth_bp', __name__)
+
+# --- Helper Function for sending confirmation email ---
+def send_confirmation_email(user):
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    token = s.dumps(user.email, salt='email-confirm-salt')
+    
+    # URL the user clicks in the email
+    confirm_url = f"{current_app.config['FRONTEND_URL']}/verify-email/{token}"
+    
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = os.environ.get('BREVO_API_KEY') 
+    api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+    
+    subject = "Confirm Your Artisan's Ally Account"
+    html_content = f"""<html><body>
+        <p>Hello {user.email},</p>
+        <p>Thank you for registering with Artisan's Ally!</p>
+        <p>Please click the link below to verify your email address and activate your account. The link is valid for 1 hour.</p>
+        <p><a href="{confirm_url}">Click here to confirm your email</a></p>
+        <p>Thanks,<br/>The Artisan's Ally Team</p>
+        </body></html>
+        """
+    sender = {"name":"Artisan's Ally","email":"noreply@freefileconverter.co.uk"}
+    to = [{"email":user.email}]
+    
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+        to=to, 
+        html_content=html_content,
+        sender=sender, 
+        subject=subject
+    )
+
+    try:
+        api_instance.send_transac_email(send_smtp_email)
+    except ApiException as e:
+        print(f"!!! Brevo API Exception in send_confirmation_email: {e}")
+        raise e
+    except Exception as e:
+        print(f"!!! Error sending confirmation email: {e}")
+        raise e
+
+# --- Route Definitions ---
 
 @auth_bp.route('/api/register', methods=['POST'])
 def register():
@@ -22,20 +64,21 @@ def register():
     user = User(
         email=data['email'], 
         password=hashed_password, 
-        currency=data.get('currency', 'GBP')
+        currency=data.get('currency', 'GBP'),
+        email_confirmed=False
     )
     db.session.add(user)
     db.session.commit()
-    login_user(user)
     
-    return jsonify({
-        "message": "User registered", 
-        "user": {
-            "email": user.email, 
-            "currency": user.currency,
-            "has_ebay_token": False 
-        }
-    }), 201
+    try:
+        send_confirmation_email(user)
+        return jsonify({
+            "message": "Account created successfully. Please check your email to confirm your account."
+        }), 201
+    except Exception:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"error": "Account created, but failed to send verification email. Please try again."}), 500
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
@@ -43,6 +86,9 @@ def login():
     user = User.query.filter_by(email=data['email']).first()
     
     if user and bcrypt.check_password_hash(user.password, data['password']):
+        if not user.email_confirmed:
+             return jsonify({"error": "Account not verified. Please check your email."}), 403 
+             
         login_user(user, remember=True)
         return jsonify({
             "message": "Logged in", 
@@ -98,7 +144,6 @@ def forgot_password():
     user = User.query.filter_by(email=email).first()
     
     if not user:
-        # Silently succeed to prevent email enumeration
         return jsonify({"message": "If an account with this email exists, a reset link has been sent."}), 200
 
     try:
@@ -109,11 +154,10 @@ def forgot_password():
         user.reset_token_expiry = int(time.time()) + 3600 # 1 hour
         db.session.commit()
 
-        # Use the frontend URL from config
         reset_url = f"{current_app.config['FRONTEND_URL']}/reset-password/{token}"
         
         configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key['api-key'] = os.environ.get('BREVO_API_KEY')
+        configuration.api_key['api-key'] = os.environ.get('BREVO_API_KEY') 
 
         api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
         
@@ -127,7 +171,6 @@ def forgot_password():
             <p>Thanks,<br/>The Artisan's Ally Team</p>
             </body></html>
             """
-        # This 'sender' email must be one you have verified with Brevo
         sender = {"name":"Artisan's Ally","email":"noreply@freefileconverter.co.uk"}
         to = [{"email":user.email}]
         
@@ -182,7 +225,29 @@ def reset_password():
         print(f"!!! Error in reset_password: {e}")
         return jsonify({"error": "An invalid or expired link was used."}), 400
 
-# --- CHANGE PASSWORD ENDPOINT ---
+@auth_bp.route('/api/verify-email/<token>', methods=['GET'])
+def verify_email(token):
+    try:
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        email = s.loads(token, salt='email-confirm-salt', max_age=3600)
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user and not user.email_confirmed:
+            user.email_confirmed = True
+            db.session.commit()
+            return jsonify({"message": "Email confirmed successfully. You can now log in."}), 200
+        elif user and user.email_confirmed:
+            return jsonify({"message": "Your email has already been verified."}), 200
+        else:
+            return jsonify({"error": "The verification link is invalid or has expired."}), 400
+            
+    except SignatureExpired:
+        return jsonify({"error": "The verification link has expired. Please register again."}), 400
+    except Exception as e:
+        print(f"!!! Error in verify_email: {e}")
+        return jsonify({"error": "The verification link is invalid."}), 400
+
 @auth_bp.route('/api/user/change-password', methods=['PUT'])
 @login_required
 def change_password():
@@ -193,11 +258,9 @@ def change_password():
     if not current_password or not new_password:
         return jsonify({"error": "Missing fields"}), 400
 
-    # Check if the current password is correct
     if not bcrypt.check_password_hash(current_user.password, current_password):
-        return jsonify({"error": "Current password is incorrect"}), 403 # 403 Forbidden
+        return jsonify({"error": "Current password is incorrect"}), 403 
 
-    # Hash the new password and save it
     current_user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
     db.session.commit()
 
