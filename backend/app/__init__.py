@@ -18,10 +18,15 @@ def create_app():
     
     app = Flask(__name__)
     
-    # Load .env file
-    dotenv_path = os.path.join(os.path.dirname(app.root_path), '.env')
-    if os.path.exists(dotenv_path):
-        load_dotenv(dotenv_path)
+    # Load environment only in local/dev environments ---
+    if not os.environ.get("PYTHONANYWHERE_DOMAIN") and not os.environ.get("PRODUCTION"):
+        dotenv_path = os.path.join(os.path.dirname(app.root_path), '.env')
+        if os.path.exists(dotenv_path):
+            print("⚙️ Loading .env file for local development")
+            from dotenv import load_dotenv
+            load_dotenv(dotenv_path)
+    else:
+        print("🚀 Running in production — skipping .env load")
     
     # --- Load Configuration ---
     # We use app.config.from_mapping to load defaults and then override with env vars
