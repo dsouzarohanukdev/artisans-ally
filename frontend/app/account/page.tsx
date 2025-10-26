@@ -20,6 +20,8 @@ export default function AccountPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // When user data loads, set the currency dropdown to their saved currency
   useEffect(() => {
@@ -72,7 +74,6 @@ export default function AccountPage() {
     }
   };
 
-  // If auth is loading, show a loading spinner
   if (isLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -81,7 +82,6 @@ export default function AccountPage() {
     );
   }
 
-  // Once loaded, show the page
   return (
     <>
       <Navbar />
@@ -131,31 +131,61 @@ export default function AccountPage() {
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
                 <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">Current Password</label>
-                <input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                {/* --- Wrapper and Toggle Button --- */}
+                <div className="relative mt-1">
+                  <input
+                    id="currentPassword"
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    title={showCurrentPassword ? "Hide password" : "Show password"}
+                  >
+                    {showCurrentPassword ? (
+                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908" /></svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.065 7-9.543 7-4.478 0-8.268-2.943-9.543-7z" /></svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">New Password</label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                {/* --- Wrapper and Toggle Button --- */}
+                <div className="relative mt-1">
+                  <input
+                    id="newPassword"
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    title={showNewPassword ? "Hide password" : "Show password"}
+                  >
+                    {showNewPassword ? (
+                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.563 3.029m-5.858-.908" /></svg>
+                    ) : (
+                      <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.543 7-1.274 4.057-5.065 7-9.543 7-4.478 0-8.268-2.943-9.543-7z" /></svg>
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm New Password</label>
                 <input
                   id="confirmPassword"
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'} // Also tied to the new password toggle
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
